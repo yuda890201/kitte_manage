@@ -178,7 +178,7 @@
     </div>
 
     <div class="master-card">
-      <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;">📦 商品マスタ (最低在庫数・買受単位含む)</h3>
+      <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;">📦 商品マスタ</h3>
       <div class="master-form">
         <input type="hidden" id="editProdId" value="">
         <input type="text" id="prodNameInput" placeholder="商品名">
@@ -210,13 +210,11 @@
 </div>
 
 <script>
-// 店舗マスタ（デフォルトは公開用に汎用的な「1号店」）
 let storesData = [
   { id: 1, name: "1号店" }
 ];
 let currentStoreId = 1;
 
-// 商品マスタ
 let masterData = [
   { id: 1, name: "収入印紙", price: 200, minStock: 100, unit: 100, category: "印紙", hasSheets: true, hidden: false, x: 200, y: 750 },
   { id: 2, name: "10円切手", price: 10, minStock: 100, unit: 100, category: "切手", hasSheets: true, hidden: false, x: 200, y: 350 },
@@ -229,11 +227,11 @@ let masterData = [
   { id: 9, name: "年賀(インク)", price: 85, minStock: 10, unit: 50, category: "葉書", hasSheets: false, hidden: false, x: 700, y: 350 },
   { id: 10, name: "年賀(ディズニー)", price: 85, minStock: 10, unit: 50, category: "葉書", hasSheets: false, hidden: false, x: 700, y: 400 },
   { id: 11, name: "年賀(写真)", price: 95, minStock: 10, unit: 10, category: "葉書", hasSheets: false, hidden: false, x: 700, y: 450 },
-  { id: 12, name: "レターパックライト", price: 430, minStock: 20, unit: 20, category: "葉書", hasSheets: false, hidden: false, x: 700, y: 500 },
-  { id: 13, name: "レターパックプラス", price: 600, minStock: 20, unit: 20, category: "葉書", hasSheets: false, hidden: false, x: 700, y: 550 }
+  // レターパックは「バラ(1枚)」と「1束(20枚)」の2項目のみに整理
+  { id: 12, name: "レターパックライト", price: 430, minStock: 20, unit: 20, category: "葉書", isLetterPack: true, hidden: false, x: 700, y: 500 },
+  { id: 13, name: "レターパックプラス", price: 600, minStock: 20, unit: 20, category: "葉書", isLetterPack: true, hidden: false, x: 700, y: 550 }
 ];
 
-// 特殊・サマリー・印字テキスト項目（オーナー印は編集可能）
 let specialPrintData = [
   { key: "sum_stamps", name: "【サマリー】郵便切手類 合計金額", x: 700, y: 1100 },
   { key: "sum_postcards", name: "【サマリー】葉書・レターパック 合計金額", x: 700, y: 1140 },
@@ -258,8 +256,15 @@ function initStoreInventory(storeId) {
   if (!storeInventories[storeId]) {
     storeInventories[storeId] = {};
     masterData.forEach(item => {
-      storeInventories[storeId][item.id] = { sheet100: 0 };
-      for (let i = 1; i <= 10; i++) storeInventories[storeId][item.id]['s' + i] = 0;
+      if (item.isLetterPack) {
+        storeInventories[storeId][item.id] = { single: 0, bundle20: 0 };
+      } else if (item.hasSheets) {
+        storeInventories[storeId][item.id] = { sheet100: 0 };
+        for (let i = 1; i <= 10; i++) storeInventories[storeId][item.id]['s' + i] = 0;
+      } else {
+        storeInventories[storeId][item.id] = {};
+        for (let i = 1; i <= 10; i++) storeInventories[storeId][item.id]['s' + i] = 0;
+      }
     });
   }
 }
@@ -307,7 +312,6 @@ function changeCurrentStore(id) {
   renderItems(currentCategory);
 }
 
-// 英語でのポップアップ確認付き非表示切り替え (折りたたみ＆黒ハイライト)
 function toggleHideItem(id) {
   const item = masterData.find(i => i.id === id);
   if (!item) return;
@@ -333,45 +337,79 @@ function renderItems(filterCat = 'all') {
   masterData.forEach(item => {
     if (filterCat !== 'all' && item.category !== filterCat) return;
     if (!inv[item.id]) {
-      inv[item.id] = { sheet100: 0 };
-      for (let i = 1; i <= 10; i++) inv[item.id]['s' + i] = 0;
+      if (item.isLetterPack) {
+        inv[item.id] = { single: 0, bundle20: 0 };
+      } else {
+        inv[item.id] = { sheet100: 0 };
+        for (let i = 1; i <= 10; i++) inv[item.id]['s' + i] = 0;
+      }
     }
 
-    let totalStock = (inv[item.id].sheet100 || 0) * 100;
-    for (let i = 1; i <= 10; i++) totalStock += (inv[item.id]['s' + i] || 0) * i;
+    let totalStock = 0;
+    if (item.isLetterPack) {
+      totalStock = (inv[item.id].single || 0) * 1 + (inv[item.id].bundle20 || 0) * 20;
+    } else {
+      totalStock = (inv[item.id].sheet100 || 0) * 100;
+      for (let i = 1; i <= 10; i++) totalStock += (inv[item.id]['s' + i] || 0) * i;
+    }
 
     const isShortage = item.minStock > 0 && totalStock < item.minStock;
     const card = document.createElement('div');
     card.className = `item-card ${item.hidden ? 'hidden-item' : ''}`;
 
     let slotsHtml = '';
-    if (item.hasSheets) {
-      const val = inv[item.id].sheet100;
+    
+    // レターパック専用の2項目表示（バラ1枚、1束20枚）
+    if (item.isLetterPack) {
+      const singleVal = inv[item.id].single || 0;
+      const bundleVal = inv[item.id].bundle20 || 0;
       slotsHtml += `
         <div class="slot-box" style="background:#e3f2fd; border-color:#bbdefb;">
-          <div class="slot-label" style="font-weight:bold; color:#1565c0;">100枚(1ｼｰﾄ)</div>
+          <div class="slot-label" style="font-weight:bold; color:#1565c0;">バラ (1枚)</div>
           <div class="vertical-stepper">
-            <button class="btn-step-v" onclick="changeCount(${item.id}, 'sheet100', 1)">▲</button>
-            <input type="number" min="0" class="slot-input" value="${val}" onchange="setCount(${item.id}, 'sheet100', this.value)">
-            <button class="btn-step-v" onclick="changeCount(${item.id}, 'sheet100', -1)">▼</button>
+            <button class="btn-step-v" onclick="changeCountLP(${item.id}, 'single', 1)">▲</button>
+            <input type="number" min="0" class="slot-input" value="${singleVal}" onchange="setCountLP(${item.id}, 'single', this.value)">
+            <button class="btn-step-v" onclick="changeCountLP(${item.id}, 'single', -1)">▼</button>
+          </div>
+        </div>
+        <div class="slot-box" style="background:#e8f5e9; border-color:#c8e6c9;">
+          <div class="slot-label" style="font-weight:bold; color:#2e7d32;">1束 (20枚)</div>
+          <div class="vertical-stepper">
+            <button class="btn-step-v" onclick="changeCountLP(${item.id}, 'bundle20', 1)">▲</button>
+            <input type="number" min="0" class="slot-input" value="${bundleVal}" onchange="setCountLP(${item.id}, 'bundle20', this.value)">
+            <button class="btn-step-v" onclick="changeCountLP(${item.id}, 'bundle20', -1)">▼</button>
           </div>
         </div>
       `;
-    }
+    } else {
+      if (item.hasSheets) {
+        const val = inv[item.id].sheet100;
+        slotsHtml += `
+          <div class="slot-box" style="background:#e3f2fd; border-color:#bbdefb;">
+            <div class="slot-label" style="font-weight:bold; color:#1565c0;">100枚(1ｼｰﾄ)</div>
+            <div class="vertical-stepper">
+              <button class="btn-step-v" onclick="changeCount(${item.id}, 'sheet100', 1)">▲</button>
+              <input type="number" min="0" class="slot-input" value="${val}" onchange="setCount(${item.id}, 'sheet100', this.value)">
+              <button class="btn-step-v" onclick="changeCount(${item.id}, 'sheet100', -1)">▼</button>
+            </div>
+          </div>
+        `;
+      }
 
-    for (let i = 1; i <= 10; i++) {
-      const val = inv[item.id]['s' + i];
-      const showWarn = (i <= 5 && val <= 1) || (i > 5 && val < 1);
-      slotsHtml += `
-        <div class="slot-box">
-          <div class="slot-label">${i}枚 ${showWarn ? '<span class="slot-alert">補充!</span>' : ''}</div>
-          <div class="vertical-stepper">
-            <button class="btn-step-v" onclick="changeCount(${item.id}, 's${i}', 1)">▲</button>
-            <input type="number" min="0" class="slot-input" value="${val}" onchange="setCount(${item.id}, 's${i}', this.value)">
-            <button class="btn-step-v" onclick="changeCount(${item.id}, 's${i}', -1)">▼</button>
+      for (let i = 1; i <= 10; i++) {
+        const val = inv[item.id]['s' + i];
+        const showWarn = (i <= 5 && val <= 1) || (i > 5 && val < 1);
+        slotsHtml += `
+          <div class="slot-box">
+            <div class="slot-label">${i}枚 ${showWarn ? '<span class="slot-alert">補充!</span>' : ''}</div>
+            <div class="vertical-stepper">
+              <button class="btn-step-v" onclick="changeCount(${item.id}, 's${i}', 1)">▲</button>
+              <input type="number" min="0" class="slot-input" value="${val}" onchange="setCount(${item.id}, 's${i}', this.value)">
+              <button class="btn-step-v" onclick="changeCount(${item.id}, 's${i}', -1)">▼</button>
+            </div>
           </div>
-        </div>
-      `;
+        `;
+      }
     }
 
     card.innerHTML = `
@@ -409,6 +447,19 @@ function setCount(itemId, key, value) {
   renderItems(currentCategory);
 }
 
+function changeCountLP(itemId, key, delta) {
+  const inv = storeInventories[currentStoreId];
+  const current = inv[itemId][key] || 0;
+  inv[itemId][key] = Math.max(0, current + delta);
+  renderItems(currentCategory);
+}
+
+function setCountLP(itemId, key, value) {
+  const inv = storeInventories[currentStoreId];
+  inv[itemId][key] = Math.max(0, parseInt(value, 10) || 0);
+  renderItems(currentCategory);
+}
+
 let currentCategory = 'all';
 function filterCategory(cat, btn) {
   currentCategory = cat;
@@ -430,8 +481,13 @@ function getSummaryValues() {
 
   masterData.forEach(item => {
     if (item.hidden) return;
-    let totalStock = (inv[item.id].sheet100 || 0) * 100;
-    for (let i = 1; i <= 10; i++) totalStock += (inv[item.id]['s' + i] || 0) * i;
+    let totalStock = 0;
+    if (item.isLetterPack) {
+      totalStock = (inv[item.id].single || 0) * 1 + (inv[item.id].bundle20 || 0) * 20;
+    } else {
+      totalStock = (inv[item.id].sheet100 || 0) * 100;
+      for (let i = 1; i <= 10; i++) totalStock += (inv[item.id]['s' + i] || 0) * i;
+    }
 
     if (item.minStock > 0 && totalStock < item.minStock) {
       const amt = item.unit * item.price;
@@ -455,7 +511,6 @@ function calcSummary() {
   document.getElementById('sum-total-cash').innerText = `${vals.totalCash.toLocaleString()} 円`;
 }
 
-// 座標マネージャー
 function renderCoordManager() {
   const container = document.getElementById('coord-rows-container');
   container.innerHTML = '';
@@ -526,7 +581,6 @@ function updateSpecialText(key, val) {
   }
 }
 
-// --- 店舗マスタ管理 ---
 function renderStoreMasterList() {
   const container = document.getElementById('store-list-container');
   container.innerHTML = '';
@@ -585,7 +639,6 @@ function deleteStore(id) {
   }
 }
 
-// --- 商品マスタ管理（最低在庫数・買受単位も表示・編集） ---
 function renderProductMasterList() {
   const container = document.getElementById('product-list-container');
   container.innerHTML = '';
@@ -661,11 +714,9 @@ function deleteProduct(id) {
   }
 }
 
-// --- 印字テキストの追加・削除機能 ---
 function renderCustomTextList() {
   const container = document.getElementById('custom-text-list-container');
   container.innerHTML = '';
-  // 追加されたカスタムテキスト項目のみ表示 (キーが sum_ や print_ 以外のもの)
   specialPrintData.filter(sp => !['sum_stamps','sum_postcards','sum_revenue','sum_postal_total','sum_total_cash','print_date','owner_seal'].includes(sp.key)).forEach(sp => {
     const div = document.createElement('div');
     div.className = 'master-list-item';
@@ -701,7 +752,6 @@ function deleteCustomText(key) {
   }
 }
 
-// --- キャンバス描画 ---
 function updateCanvas() {
   const canvas = document.getElementById('formCanvas');
   const ctx = canvas.getContext('2d');
@@ -749,11 +799,15 @@ function updateCanvas() {
   initStoreInventory(currentStoreId);
   const inv = storeInventories[currentStoreId];
 
-  // 1. 各商品の赤字描画
   masterData.forEach(item => {
     if (item.hidden) return;
-    let totalStock = (inv[item.id].sheet100 || 0) * 100;
-    for (let i = 1; i <= 10; i++) totalStock += (inv[item.id]['s' + i] || 0) * i;
+    let totalStock = 0;
+    if (item.isLetterPack) {
+      totalStock = (inv[item.id].single || 0) * 1 + (inv[item.id].bundle20 || 0) * 20;
+    } else {
+      totalStock = (inv[item.id].sheet100 || 0) * 100;
+      for (let i = 1; i <= 10; i++) totalStock += (inv[item.id]['s' + i] || 0) * i;
+    }
 
     if (item.minStock > 0 && totalStock < item.minStock) {
       const qty = item.unit;
@@ -763,7 +817,6 @@ function updateCanvas() {
     }
   });
 
-  // 2. 特殊・サマリー・カスタム印字テキストの描画
   const summaryVals = getSummaryValues();
   const summaryMap = {
     sum_stamps: `${summaryVals.stampAmt.toLocaleString()} 円`,
@@ -805,7 +858,6 @@ function resetAllInputs() {
   }
 }
 
-// 初期化実行
 initData();
 preloadBackground();
 renderItems('all');
