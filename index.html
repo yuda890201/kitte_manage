@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>切手・印紙 在庫管理 ＆ 請求書自動作成</title>
+  <title>切手・印紙 請求書リアルタイムプレビュー</title>
   <style>
     :root {
       --primary: #1976d2;
@@ -24,20 +24,25 @@
     header h1 { font-size: 1.1rem; font-weight: bold; }
     .btn-header { background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 12px; border-radius: 4px; font-size: 0.85rem; cursor: pointer; }
     
-    .container { max-width: 800px; margin: 0 auto; padding: 12px; }
+    .container { max-width: 900px; margin: 0 auto; padding: 12px; }
     
+    /* リアルタイムプレビューエリア */
+    .preview-card { background: var(--card-bg); border-radius: 10px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid var(--primary); }
+    .preview-title { font-size: 0.9rem; font-weight: bold; color: var(--primary); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+    .canvas-container { width: 100%; overflow-x: auto; background: #eee; border-radius: 6px; text-align: center; padding: 8px; }
+    canvas { max-width: 100%; height: auto; border: 1px solid #ccc; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
     .summary-card { background: var(--card-bg); border-radius: 10px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid var(--accent); }
-    .summary-title { font-size: 0.9rem; font-weight: bold; color: var(--accent); margin-bottom: 8px; }
     .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
     .summary-item { background: #fafafa; padding: 8px; border-radius: 6px; border: 1px solid var(--border); }
     .summary-item .label { font-size: 0.75rem; color: var(--text-sub); }
     .summary-item .val { font-size: 1.05rem; font-weight: bold; }
-    .total-box { background: #fff3e0; border: 1px solid #ffe0b2; padding: 10px; border-radius: 6px; text-align: center; margin-bottom: 12px; }
+    .total-box { background: #fff3e0; border: 1px solid #ffe0b2; padding: 10px; border-radius: 6px; text-align: center; margin-bottom: 10px; }
     .total-box .label { font-size: 0.8rem; color: #e65100; font-weight: bold; }
     .total-box .val { font-size: 1.35rem; font-weight: bold; color: #d84315; }
 
-    .btn-form-gen { width: 100%; background: #c62828; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.15); }
-    .btn-form-gen:hover { background: #b71c1c; }
+    .btn-download { width: 100%; background: #c62828; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.15); }
+    .btn-download:hover { background: #b71c1c; }
 
     .tabs { display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 4px; }
     .tab { background: #e0e0e0; border: none; padding: 8px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; cursor: pointer; white-space: nowrap; }
@@ -58,53 +63,40 @@
     .stepper { display: flex; align-items: center; justify-content: center; gap: 4px; margin-top: 4px; }
     .btn-step { width: 28px; height: 28px; border: 1px solid #ccc; background: #fff; border-radius: 4px; font-weight: bold; cursor: pointer; }
     .stepper input { width: 44px; height: 28px; text-align: center; font-size: 0.95rem; border: 1px solid #ccc; border-radius: 4px; }
-
-    /* モーダルプレビュー画面 */
-    .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; padding: 16px; }
-    .modal-content { background: white; border-radius: 10px; max-width: 700px; width: 100%; max-height: 90vh; display: flex; flexDirection: column; overflow: hidden; padding: 16px; }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    .modal-body { overflow-y: auto; text-align: center; flex: 1; }
-    .modal-body canvas { max-width: 100%; height: auto; border: 1px solid #ccc; }
-    .btn-close { background: #ccc; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; }
-    .btn-download { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; width: 100%; margin-top: 10px; cursor: pointer; }
   </style>
 </head>
 <body>
 
 <header>
-  <h1>切手・印紙 請求書作成</h1>
+  <h1>切手・印紙 請求書リアルタイムプレビュー</h1>
   <button class="btn-header" onclick="resetAllInputs()">クリア</button>
 </header>
 
 <div class="container">
 
-  <div class="summary-card">
-    <div class="summary-title">📢 発注・買受サマリー</div>
-    <div class="summary-grid">
-      <div class="summary-item">
-        <div class="label">郵便切手類 合計</div>
-        <div class="val" id="sum-stamps">0 円</div>
-      </div>
-      <div class="summary-item">
-        <div class="label">葉書・レターパック 合計</div>
-        <div class="val" id="sum-postcards">0 円</div>
-      </div>
-      <div class="summary-item">
-        <div class="label">収入印紙 合計</div>
-        <div class="val" id="sum-revenue">0 円</div>
-      </div>
-      <div class="summary-item">
-        <div class="label">切手等 計（印紙除く）</div>
-        <div class="val" id="sum-postal-total">0 円</div>
-      </div>
+  <div class="preview-card">
+    <div class="preview-title">
+      <span>👁️ 請求書 リアルタイム赤字プレビュー</span>
+      <span style="font-size:0.75rem; color:var(--text-sub);">数値変更時に即時反映</span>
     </div>
-    
+    <div class="canvas-container">
+      <canvas id="formCanvas"></canvas>
+    </div>
+    <button class="btn-download" style="margin-top:10px;" onclick="downloadFormImage()">📥 完成した請求書画像をダウンロード</button>
+  </div>
+
+  <div class="summary-card">
+    <div class="summary-title" style="color:var(--accent);">📢 発注・買受サマリー</div>
+    <div class="summary-grid">
+      <div class="summary-item"><div class="label">郵便切手類 合計</div><div class="val" id="sum-stamps">0 円</div></div>
+      <div class="summary-item"><div class="label">葉書・レターパック 合計</div><div class="val" id="sum-postcards">0 円</div></div>
+      <div class="summary-item"><div class="label">収入印紙 合計</div><div class="val" id="sum-revenue">0 円</div></div>
+      <div class="summary-item"><div class="label">切手等 計（印紙除く）</div><div class="val" id="sum-postal-total">0 円</div></div>
+    </div>
     <div class="total-box">
       <div class="label">レジ出金額（商品前渡金 総額）</div>
       <div class="val" id="sum-total-cash">0 円</div>
     </div>
-
-    <button class="btn-form-gen" onclick="generateRequestFormImage()">📄 公式請求書に赤字を挿入して画像化</button>
   </div>
 
   <div class="tabs">
@@ -116,19 +108,6 @@
 
   <div id="items-container"></div>
 
-</div>
-
-<div class="modal" id="previewModal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3 style="font-size:1rem;">作成された請求書（赤字入）</h3>
-      <button class="btn-close" onclick="closeModal()">閉じる</button>
-    </div>
-    <div class="modal-body">
-      <canvas id="formCanvas"></canvas>
-    </div>
-    <button class="btn-download" onclick="downloadFormImage()">📥 画像としてダウンロード</button>
-  </div>
 </div>
 
 <script>
@@ -149,6 +128,15 @@ const masterData = [
 ];
 
 let inputState = {};
+let bgImage = null;
+
+// 背景画像を事前ロード
+function preloadBackground() {
+  bgImage = new Image();
+  bgImage.src = 'form_base.png'; // 請求書の画像ファイル名
+  bgImage.onload = () => { updateCanvas(); };
+  bgImage.onerror = () => { bgImage = null; updateCanvas(); };
+}
 
 function initData() {
   masterData.forEach(item => {
@@ -206,7 +194,9 @@ function renderItems(filterCat = 'all') {
       <div class="input-grid">${slotsHtml}</div>`;
     container.appendChild(card);
   });
+
   calcSummary();
+  updateCanvas(); // 数値変更時にプレビューCanvasを即時再描画
 }
 
 function changeCount(itemId, key, delta) {
@@ -251,76 +241,48 @@ function calcSummary() {
   document.getElementById('sum-total-cash').innerText = `${totalCash.toLocaleString()} 円`;
 }
 
-// 請求書画像生成関数
-function generateRequestFormImage() {
+// リアルタイムCanvas描画関数
+function updateCanvas() {
   const canvas = document.getElementById('formCanvas');
   const ctx = canvas.getContext('2d');
 
-  // 背景の請求書画像（form_base.png）を読み込み
-  const bgImg = new Image();
-  bgImg.src = 'form_base.png'; // 請求書PDFの画像を配置
-  bgImg.onload = function() {
-    canvas.width = bgImg.width;
-    canvas.height = bgImg.height;
-    ctx.drawImage(bgImg, 0, 0);
-
-    // 赤字のスタイル設定
-    ctx.fillStyle = '#d32f2f';
-    ctx.font = 'bold 24px sans-serif';
-
-    // 各項目の注文数を割り出し、請求書の該当座標に描画
-    // （※お手元のPDFの解像度・レイアウトに合わせて座標を微調整してください）
-    masterData.forEach(item => {
-      let totalStock = (inputState[item.id].sheet100 || 0) * 100;
-      for (let i = 1; i <= 10; i++) totalStock += (inputState[item.id]['s' + i] || 0) * i;
-
-      if (item.minStock > 0 && totalStock < item.minStock) {
-        const qty = item.unit;
-        const amt = qty * item.price;
-        
-        // 例: 85円切手の購入数・金額描画座標（サンプル）
-        // 実際のPDFの表の位置に合わせてX, Y座標を指定します
-      }
-    });
-
-    // モーダルを表示
-    document.getElementById('previewModal').style.display = 'flex';
-  };
-
-  bgImg.onerror = function() {
-    // 万が一背景画像がない場合でも、キャンバスに簡易レイアウトを描画して動作確認できるようにする
+  if (bgImage) {
+    canvas.width = bgImage.width;
+    canvas.height = bgImage.height;
+    ctx.drawImage(bgImage, 0, 0);
+  } else {
+    // 背景画像未設定時のフォールバック（白紙キャンバス）
     canvas.width = 800;
     canvas.height = 1130;
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    ctx.fillStyle = '#000000';
-    ctx.font = 'bold 20px sans-serif';
-    ctx.fillText("郵便切手類及び印紙売渡請求書（自動赤字合成サンプル）", 50, 50);
-
-    // 計算された数値を描画
-    ctx.fillStyle = '#d32f2f';
+    ctx.fillStyle = '#333333';
     ctx.font = 'bold 18px sans-serif';
-    
-    let y = 120;
-    masterData.forEach(item => {
-      let totalStock = (inputState[item.id].sheet100 || 0) * 100;
-      for (let i = 1; i <= 10; i++) totalStock += (inputState[item.id]['s' + i] || 0) * i;
+    ctx.fillText("【プレビュー】form_base.png を配置するとここに請求書背景が表示されます", 40, 40);
+  }
 
-      if (item.minStock > 0 && totalStock < item.minStock) {
-        ctx.fillText(`〇 ${item.name}`, 60, y);
-        ctx.fillText(`数量: ${item.unit}`, 350, y);
-        ctx.fillText(`金額: ¥${(item.unit * item.price).toLocaleString()}`, 500, y);
-        y += 35;
-      }
-    });
+  // 赤字のスタイル
+  ctx.fillStyle = '#d32f2f';
+  ctx.font = 'bold 20px sans-serif';
 
-    document.getElementById('previewModal').style.display = 'flex';
-  };
-}
+  // ※ここに、お手元の請求書画像の座標に合わせて各項目の数量・金額を描画するロジックを配置します
+  let sampleY = 120;
+  masterData.forEach(item => {
+    let totalStock = (inputState[item.id].sheet100 || 0) * 100;
+    for (let i = 1; i <= 10; i++) totalStock += (inputState[item.id]['s' + i] || 0) * i;
 
-function closeModal() {
-  document.getElementById('previewModal').style.display = 'none';
+    if (item.minStock > 0 && totalStock < item.minStock) {
+      const qty = item.unit;
+      const amt = qty * item.price;
+      
+      // 画面上のデモ用描画（実際のPDF座標に合わせて微調整してください）
+      ctx.fillText(`${item.name}`, 50, sampleY);
+      ctx.fillText(`数量: ${qty}`, 300, sampleY);
+      ctx.fillText(`金額: ¥${amt.toLocaleString()}`, 450, sampleY);
+      sampleY += 30;
+    }
+  });
 }
 
 function downloadFormImage() {
@@ -332,6 +294,7 @@ function downloadFormImage() {
 }
 
 initData();
+preloadBackground();
 renderItems('all');
 </script>
 
