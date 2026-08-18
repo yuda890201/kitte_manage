@@ -3,7 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>切手・印紙 在庫管理＆請求書自動作成システム</title>
+  <title>切手管理</title>
+  <link rel="icon" type="image/png" href="kitte_manage.png">
+  <link rel="apple-touch-icon" href="kitte_manage.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="切手管理">
+
   <style>
     :root {
       --primary: #1976d2;
@@ -20,25 +25,23 @@
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background: var(--bg); color: var(--text); padding-bottom: 90px; }
-    header { background: var(--primary); color: white; padding: 14px 16px; position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; }
-    header h1 { font-size: 1.1rem; font-weight: bold; }
+    header { background: var(--primary); color: white; padding: 14px 16px; position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    header h1 { font-size: 1.1rem; font-weight: bold; display: flex; align-items: center; gap: 8px; }
+    header h1 img { width: 24px; height: 24px; border-radius: 4px; object-fit: cover; }
     .btn-header { background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 12px; border-radius: 4px; font-size: 0.85rem; cursor: pointer; }
     
     .container { max-width: 900px; margin: 0 auto; padding: 12px; }
     
-    /* モード切り替えタブ */
     .mode-tabs { display: flex; background: #ddd; border-radius: 8px; padding: 4px; margin-bottom: 14px; gap: 4px; }
-    .mode-tab { flex: 1; background: none; border: none; padding: 10px; font-weight: bold; font-size: 0.85rem; border-radius: 6px; cursor: pointer; text-align: center; color: #555; }
+    .mode-tab { flex: 1; background: none; border: none; padding: 10px; font-weight: bold; font-size: 0.8rem; border-radius: 6px; cursor: pointer; text-align: center; color: #555; }
     .mode-tab.active { background: white; color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 
     .section-view { display: none; }
     .section-view.active { display: block; }
 
-    /* 店舗選択バー */
     .store-bar { background: #e3f2fd; border: 1px solid #bbdefb; padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; font-weight: bold; color: #0d47a1; }
     .store-bar select { padding: 4px 8px; border-radius: 4px; border: 1px solid #90caf9; font-size: 0.9rem; }
 
-    /* 入力メインコンテナ */
     .input-main-container { display: flex; flex-direction: column; gap: 16px; }
 
     .summary-card { background: var(--card-bg); border-radius: 10px; padding: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid var(--accent); }
@@ -51,7 +54,6 @@
     .total-box .label { font-size: 0.8rem; color: #e65100; font-weight: bold; }
     .total-box .val { font-size: 1.35rem; font-weight: bold; color: #d84315; }
 
-    /* アイテムカード（通常＆非表示時折りたたみ） */
     .item-card { background: var(--card-bg); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); transition: all 0.2s; }
     .item-card.hidden-item { background: #212121; color: white; padding: 8px 14px; }
     .item-card.hidden-item .item-price, .item-card.hidden-item .slot-box { display: none; }
@@ -73,7 +75,6 @@
     .btn-step-v { width: 100%; height: 22px; border: 1px solid #ccc; background: #fff; border-radius: 3px; font-weight: bold; cursor: pointer; font-size: 0.8rem; line-height: 1; }
     .slot-input { width: 100%; height: 26px; text-align: center; font-size: 0.9rem; border: 1px solid #ccc; border-radius: 3px; font-weight: bold; }
 
-    /* プレビュー＆座標調整 */
     .preview-card { background: var(--card-bg); border-radius: 10px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid var(--primary); }
     .canvas-container { width: 100%; overflow: auto; max-height: 450px; background: #eee; border-radius: 6px; text-align: center; padding: 8px; border: 1px solid #ccc; }
     canvas { background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
@@ -84,7 +85,6 @@
     .coord-control-group { display: flex; align-items: center; gap: 6px; }
     .coord-control-group input[type="range"] { width: 90px; }
 
-    /* マスタ管理画面 */
     .master-card { background: white; border-radius: 10px; padding: 14px; margin-bottom: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid #4caf50; }
     .master-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
     .master-form input, .master-form select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; }
@@ -100,20 +100,20 @@
 <body>
 
 <header>
-  <h1>切手・印紙 管理システム</h1>
+  <h1><img src="kitte_manage.png" alt="Icon"> 切手管理</h1>
   <button class="btn-header" onclick="resetAllInputs()">クリア</button>
 </header>
 
 <div class="container">
 
   <div class="store-bar">
-    <span>🏪 対象店舗: <span id="currentStoreDisplay">博多住吉通り店 (1号店)</span></span>
+    <span>🏪 対象店舗: <span id="currentStoreDisplay">1号店</span></span>
     <select id="storeSelector" onchange="changeCurrentStore(this.value)"></select>
   </div>
 
   <div class="mode-tabs">
     <button class="mode-tab active" onclick="switchMode('input', this)">📋 入力・サマリー</button>
-    <button class="mode-tab" onclick="switchMode('preview', this)">👁️ 請求書プレビュー・座標</button>
+    <button class="mode-tab" onclick="switchMode('preview', this)">👁️ プレビュー・座標</button>
     <button class="mode-tab" onclick="switchMode('master', this)">⚙️ マスタ管理</button>
   </div>
 
@@ -168,20 +168,20 @@
   <div id="view-master" class="section-view">
     
     <div class="master-card">
-      <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;">🏪 店舗マスタ追加・編集・削除</h3>
+      <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;">🏪 店舗マスタ (店舗名のみ)</h3>
       <div class="master-form">
         <input type="hidden" id="editStoreId" value="">
-        <input type="text" id="storeNameInput" placeholder="店舗名 (例: 博多住吉通り店)" style="grid-column: span 2;">
+        <input type="text" id="storeNameInput" placeholder="店舗名 (例: 1号店)" style="grid-column: span 2;">
         <button class="btn-submit-master" id="storeSubmitBtn" onclick="saveStoreMaster()">店舗を追加する</button>
       </div>
       <div id="store-list-container" style="margin-top: 10px;"></div>
     </div>
 
     <div class="master-card">
-      <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;">📦 商品マスタ追加・編集・削除</h3>
+      <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;">📦 商品マスタ (最低在庫数・買受単位含む)</h3>
       <div class="master-form">
         <input type="hidden" id="editProdId" value="">
-        <input type="text" id="prodNameInput" placeholder="商品名 (例: 50円切手)">
+        <input type="text" id="prodNameInput" placeholder="商品名">
         <input type="number" id="prodPriceInput" placeholder="価格 (円)">
         <input type="number" id="prodMinInput" placeholder="最低在庫数">
         <input type="number" id="prodUnitInput" placeholder="買受単位">
@@ -195,18 +195,28 @@
       <div id="product-list-container" style="margin-top: 10px;"></div>
     </div>
 
+    <div class="master-card" style="border-left-color: #2196f3;">
+      <h3 style="font-size:0.95rem; color:#1976d2; margin-bottom:4px;">✏️ プレビュー印字テキスト追加・削除</h3>
+      <div class="master-form">
+        <input type="text" id="customTextKey" placeholder="識別キー (例: note_text)">
+        <input type="text" id="customTextVal" placeholder="印字内容 (例: 備考欄メモ等)">
+        <button class="btn-submit-master" style="background:#1976d2;" onclick="addCustomTextItem()">印字テキストを追加する</button>
+      </div>
+      <div id="custom-text-list-container" style="margin-top: 10px;"></div>
+    </div>
+
   </div>
 
 </div>
 
 <script>
-// 店舗マスタデータ（デフォルト1号店）
+// 店舗マスタ（デフォルトは公開用に汎用的な「1号店」）
 let storesData = [
-  { id: 1, name: "ファミリーマート博多住吉通り店" }
+  { id: 1, name: "1号店" }
 ];
 let currentStoreId = 1;
 
-// 商品マスタデータ（x, y座標付き）
+// 商品マスタ
 let masterData = [
   { id: 1, name: "収入印紙", price: 200, minStock: 100, unit: 100, category: "印紙", hasSheets: true, hidden: false, x: 200, y: 750 },
   { id: 2, name: "10円切手", price: 10, minStock: 100, unit: 100, category: "切手", hasSheets: true, hidden: false, x: 200, y: 350 },
@@ -223,18 +233,17 @@ let masterData = [
   { id: 13, name: "レターパックプラス", price: 600, minStock: 20, unit: 20, category: "葉書", hasSheets: false, hidden: false, x: 700, y: 550 }
 ];
 
-// サマリー5項目 ＋ 作成年月日 ＋ オーイヤー(オーナー)印 の特殊アイテム座標管理
+// 特殊・サマリー・印字テキスト項目（オーナー印は編集可能）
 let specialPrintData = [
   { key: "sum_stamps", name: "【サマリー】郵便切手類 合計金額", x: 700, y: 1100 },
   { key: "sum_postcards", name: "【サマリー】葉書・レターパック 合計金額", x: 700, y: 1140 },
   { key: "sum_revenue", name: "【サマリー】収入印紙 合計金額", x: 700, y: 1180 },
   { key: "sum_postal_total", name: "【サマリー】切手等 計（印紙除く）", x: 700, y: 1220 },
   { key: "sum_total_cash", name: "【サマリー】レジ出金額(商品前渡金 総額)", x: 700, y: 1270 },
-  { key: "print_date", name: "【記入欄】作成年月日 (例: 2026年3月〇日)", x: 250, y: 220 },
-  { key: "owner_seal", name: "【記入欄】オーナー印 (店長印)", x: 900, y: 220 }
+  { key: "print_date", name: "【印字】作成年月日", x: 250, y: 220 },
+  { key: "owner_seal", name: "【印字・編集可】オーナー印", x: 900, y: 220, editableText: "印" }
 ];
 
-// 店舗ごとの在庫状態を保持 { storeId: { prodId: { sheet100: 0, s1: 0 ... s10: 0 } } }
 let storeInventories = {};
 let bgImage = null;
 
@@ -273,6 +282,7 @@ function switchMode(mode, btn) {
   if (mode === 'master') {
     renderStoreMasterList();
     renderProductMasterList();
+    renderCustomTextList();
   }
 }
 
@@ -297,7 +307,7 @@ function changeCurrentStore(id) {
   renderItems(currentCategory);
 }
 
-// 英語でのポップアップ確認付き非表示切り替え (折りたたみ＆黒ハイライト用クラス適用)
+// 英語でのポップアップ確認付き非表示切り替え (折りたたみ＆黒ハイライト)
 function toggleHideItem(id) {
   const item = masterData.find(i => i.id === id);
   if (!item) return;
@@ -310,7 +320,6 @@ function toggleHideItem(id) {
   if (confirm(msg)) {
     item.hidden = !item.hidden;
     renderItems(currentCategory);
-    renderCoordManager();
   }
 }
 
@@ -446,12 +455,11 @@ function calcSummary() {
   document.getElementById('sum-total-cash').innerText = `${vals.totalCash.toLocaleString()} 円`;
 }
 
-// 座標マネージャー（商品 ＋ サマリー5種 ＋ 日付・印）
+// 座標マネージャー
 function renderCoordManager() {
   const container = document.getElementById('coord-rows-container');
   container.innerHTML = '';
 
-  // 1. 商品座標
   masterData.forEach(item => {
     const row = document.createElement('div');
     row.className = 'coord-item-row';
@@ -469,13 +477,16 @@ function renderCoordManager() {
     container.appendChild(row);
   });
 
-  // 2. 特殊項目（サマリー5種 ＋ 日付・印）座標
   specialPrintData.forEach(sp => {
     const row = document.createElement('div');
     row.className = 'coord-item-row';
     row.style.background = '#e8f5e9';
+    let editHtml = '';
+    if (sp.key === 'owner_seal') {
+      editHtml = `<input type="text" value="${sp.editableText}" oninput="updateSpecialText('${sp.key}', this.value)" style="width:50px; padding:2px; font-size:0.8rem;">`;
+    }
     row.innerHTML = `
-      <b>${sp.name}</b>
+      <b>${sp.name}</b> ${editHtml}
       <div class="coord-control-group">
         X:<input type="range" min="0" max="1200" value="${sp.x}" oninput="updateSpecialCoord('${sp.key}', 'x', this.value)">
         <span id="coord_x_${sp.key}" style="width:35px; text-align:right;">${sp.x}</span>px
@@ -507,7 +518,15 @@ function updateSpecialCoord(key, axis, val) {
   }
 }
 
-// --- 店舗マスタ管理（追加・編集・削除） ---
+function updateSpecialText(key, val) {
+  const sp = specialPrintData.find(s => s.key === key);
+  if (sp) {
+    sp.editableText = val;
+    updateCanvas();
+  }
+}
+
+// --- 店舗マスタ管理 ---
 function renderStoreMasterList() {
   const container = document.getElementById('store-list-container');
   container.innerHTML = '';
@@ -515,7 +534,7 @@ function renderStoreMasterList() {
     const div = document.createElement('div');
     div.className = 'master-list-item';
     div.innerHTML = `
-      <span><b>${s.name}</b> (ID: ${s.id})</span>
+      <span><b>${s.name}</b></span>
       <div>
         <button class="btn-edit" onclick="editStore(${s.id})">編集</button>
         <button class="btn-del" onclick="deleteStore(${s.id})">削除</button>
@@ -566,7 +585,7 @@ function deleteStore(id) {
   }
 }
 
-// --- 商品マスタ管理（追加・編集・削除） ---
+// --- 商品マスタ管理（最低在庫数・買受単位も表示・編集） ---
 function renderProductMasterList() {
   const container = document.getElementById('product-list-container');
   container.innerHTML = '';
@@ -574,7 +593,7 @@ function renderProductMasterList() {
     const div = document.createElement('div');
     div.className = 'master-list-item';
     div.innerHTML = `
-      <span><b>${p.name}</b> (¥${p.price} / ${p.category})</span>
+      <span><b>${p.name}</b> (¥${p.price} | 最低在庫:${p.minStock} / 買受単位:${p.unit})</span>
       <div>
         <button class="btn-edit" onclick="editProduct(${p.id})">編集</button>
         <button class="btn-del" onclick="deleteProduct(${p.id})">削除</button>
@@ -642,7 +661,47 @@ function deleteProduct(id) {
   }
 }
 
-// --- キャンバス描画（商品赤字 ＋ サマリー5種 ＋ 日付・印） ---
+// --- 印字テキストの追加・削除機能 ---
+function renderCustomTextList() {
+  const container = document.getElementById('custom-text-list-container');
+  container.innerHTML = '';
+  // 追加されたカスタムテキスト項目のみ表示 (キーが sum_ や print_ 以外のもの)
+  specialPrintData.filter(sp => !['sum_stamps','sum_postcards','sum_revenue','sum_postal_total','sum_total_cash','print_date','owner_seal'].includes(sp.key)).forEach(sp => {
+    const div = document.createElement('div');
+    div.className = 'master-list-item';
+    div.innerHTML = `
+      <span><b>${sp.name}</b> (内容: ${sp.editableText})</span>
+      <button class="btn-del" onclick="deleteCustomText('${sp.key}')">削除</button>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function addCustomTextItem() {
+  const key = document.getElementById('customTextKey').value.trim();
+  const val = document.getElementById('customTextVal').value.trim();
+  if (!key || !val) { alert("識別キーと印字内容を入力してください。"); return; }
+  
+  if (specialPrintData.some(s => s.key === key)) {
+    alert("すでに存在するキーです。");
+    return;
+  }
+
+  specialPrintData.push({ key, name: `【カスタム】${key}`, x: 400, y: 500, editableText: val });
+  document.getElementById('customTextKey').value = '';
+  document.getElementById('customTextVal').value = '';
+  renderCustomTextList();
+  alert("印字テキストを追加しました！プレビュー・座標画面で位置を調整できます。");
+}
+
+function deleteCustomText(key) {
+  if (confirm("この印字テキストを削除しますか？")) {
+    specialPrintData = specialPrintData.filter(s => s.key !== key);
+    renderCustomTextList();
+  }
+}
+
+// --- キャンバス描画 ---
 function updateCanvas() {
   const canvas = document.getElementById('formCanvas');
   const ctx = canvas.getContext('2d');
@@ -704,7 +763,7 @@ function updateCanvas() {
     }
   });
 
-  // 2. 買受サマリー5種 ＋ 日付 ＋ オーナー印の赤字描画
+  // 2. 特殊・サマリー・カスタム印字テキストの描画
   const summaryVals = getSummaryValues();
   const summaryMap = {
     sum_stamps: `${summaryVals.stampAmt.toLocaleString()} 円`,
@@ -712,12 +771,11 @@ function updateCanvas() {
     sum_revenue: `${summaryVals.revAmt.toLocaleString()} 円`,
     sum_postal_total: `${summaryVals.postalTotal.toLocaleString()} 円`,
     sum_total_cash: `${summaryVals.totalCash.toLocaleString()} 円`,
-    print_date: new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' }),
-    owner_seal: "印"
+    print_date: new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })
   };
 
   specialPrintData.forEach(sp => {
-    const text = summaryMap[sp.key] || "";
+    let text = summaryMap[sp.key] || sp.editableText || "";
     if (text) {
       ctx.fillText(text, sp.x, sp.y);
     }
