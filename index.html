@@ -964,7 +964,7 @@ function renderCustomTextList() {
   const container = document.getElementById('custom-text-list-container');
   if (!container) return;
   container.innerHTML = '';
-  specialPrintData.filter(sp => !['sum_stamps','sum_postcards','sum_revenue','sum_postal_total','sum_total_cash','print_date','owner_seal'].includes(sp.key)).forEach(sp => {
+  specialPrintData.filter(sp => !['sum_stamps','sum_postcards','sum_revenue','sum_revenue_amt','sum_postal_total','sum_total_cash','print_date','owner_seal'].includes(sp.key)).forEach(sp => {
     const div = document.createElement('div');
     div.className = 'master-list-item';
     div.innerHTML = `
