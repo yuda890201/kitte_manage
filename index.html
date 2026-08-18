@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>切手管理</title>
+  <!-- ホーム画面アイコン設定 -->
   <link rel="icon" type="image/png" href="kitte_manage.png">
   <link rel="apple-touch-icon" href="kitte_manage.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -39,8 +40,8 @@
     .section-view { display: none; }
     .section-view.active { display: block; }
 
+    /* メイン画面の店舗表示バー（誤操作防止のためプルダウン撤去し現在の店舗名のみ表示） */
     .store-bar { background: #e3f2fd; border: 1px solid #bbdefb; padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; font-weight: bold; color: #0d47a1; }
-    .store-bar select { padding: 4px 8px; border-radius: 4px; border: 1px solid #90caf9; font-size: 0.9rem; }
 
     .input-main-container { display: flex; flex-direction: column; gap: 16px; }
 
@@ -95,21 +96,24 @@
     .btn-del { background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; }
 
     .btn-action-main { width: 100%; background: #c62828; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    .btn-share { width: 100%; background: #00c300; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 8px; }
+    
     .sync-status { font-size: 0.75rem; color: #ffeb3b; margin-left: 8px; font-weight: normal; }
   </style>
 </head>
 <body>
 
 <header>
-  <h1><img src="kitte_manage.png" alt="Icon"> 切手管理 <span id="syncStatus" class="sync-status">(同期中...)</span></h1>
+  <h1><img src="kitte_manage.png" alt="Icon"> 切手管理 <span id="syncStatus" class="sync-status">(オフライン)</span></h1>
   <button class="btn-header" onclick="syncWithCloud()">手動同期</button>
 </header>
 
 <div class="container">
 
+  <!-- メイン画面の店舗表示バー（プルダウン排除・誤操作防止） -->
   <div class="store-bar">
-    <span>🏪 対象店舗: <span id="currentStoreDisplay">1号店</span></span>
-    <select id="storeSelector" onchange="changeCurrentStore(this.value)"></select>
+    <span>🏪 現在の店舗: <span id="currentStoreDisplay" style="color:#1565c0;">1号店</span></span>
+    <span style="font-size:0.75rem; color:#666;">(※店舗変更はマスタ管理画面から)</span>
   </div>
 
   <div class="mode-tabs">
@@ -143,6 +147,7 @@
           <div class="val" id="sum-total-cash">0 円</div>
         </div>
         <button class="btn-action-main" onclick="switchMode('preview', document.querySelectorAll('.mode-tab')[1])">📄 請求書プレビュー・画像作成へ</button>
+        <button class="btn-share" onclick="shareOrderSummary()">💬 買受依頼をワンタップ共有</button>
       </div>
 
     </div>
@@ -168,8 +173,9 @@
 
   <div id="view-master" class="section-view">
     
+    <!-- 店舗マスタ管理（ここで選択した店舗が次回も記憶される） -->
     <div class="master-card">
-      <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;">🏪 店舗マスタ (店舗名のみ)</h3>
+      <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;">🏪 店舗設定・切り替え</h3>
       <div class="master-form">
         <input type="hidden" id="editStoreId" value="">
         <input type="text" id="storeNameInput" placeholder="店舗名 (例: 1号店)" style="grid-column: span 2;">
@@ -216,7 +222,9 @@ const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzaqg7CwWgX5AOpUL-b
 let storesData = [
   { id: 1, name: "1号店" }
 ];
-let currentStoreId = 1;
+
+// ローカルストレージまたは初期設定から前回の店舗IDを復元（誤操作防止・記憶）
+let currentStoreId = parseInt(localStorage.getItem('kitte_current_store_id'), 10) || 1;
 
 let masterData = [
   { id: 1, name: "収入印紙", price: 200, minStock: 100, unit: 100, category: "印紙", hasSheets: true, x: 200, y: 750 },
@@ -244,13 +252,52 @@ let specialPrintData = [
   { key: "owner_seal", name: "【印字・編集可】オーナー印", x: 900, y: 220, editableText: "印" }
 ];
 
-// 店舗ごとの在庫 ＋ 店舗ごとの非表示設定 { storeId: { inventory: {}, hiddenItems: { prodId: true/false } } }
 let storeDataMap = {};
 let bgImage = null;
 
+// --- オフライン対応（ローカルストレージ自動保存・読み込み） ---
+function saveToLocalStorage() {
+  try {
+    const data = {
+      stores: storesData,
+      products: masterData,
+      layout: specialPrintData,
+      inventory: storeDataMap,
+      storeId: currentStoreId
+    };
+    localStorage.setItem('kitte_app_cache', JSON.stringify(data));
+  } catch(e) {}
+}
+
+function loadFromLocalStorage() {
+  try {
+    const cached = localStorage.getItem('kitte_app_cache');
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed.stores) storesData = parsed.stores;
+      if (parsed.products) masterData = parsed.products;
+      if (parsed.layout) specialPrintData = parsed.layout;
+      if (parsed.inventory) storeDataMap = parsed.inventory;
+      if (parsed.storeId) currentStoreId = parsed.storeId;
+      return true;
+    }
+  } catch(e) {}
+  return false;
+}
+
+// --- クラウド同期 ---
 async function loadFromCloud() {
+  // まずオフラインキャッシュを即時反映して快適に表示
+  const hasLocal = loadFromLocalStorage();
+  if (hasLocal) {
+    initStoreData(currentStoreId);
+    updateStoreDisplay();
+    renderItems(currentCategory);
+    setSyncStatus("(オフラインキャッシュ表示中)");
+  }
+
   if (GAS_API_URL.includes("YOUR_GAS_WEB_APP_URL")) return;
-  setSyncStatus("(読込中...)");
+  setSyncStatus("(クラウド同期中...)");
   try {
     const res = await fetch(GAS_API_URL);
     const json = await res.json();
@@ -272,21 +319,24 @@ async function loadFromCloud() {
         } catch(e) {}
       });
     }
-    setSyncStatus("(同期完了)");
+    saveToLocalStorage();
+    setSyncStatus("(クラウド同期完了)");
     initStoreData(currentStoreId);
-    renderStoreSelector();
+    updateStoreDisplay();
     renderItems(currentCategory);
   } catch(e) {
-    setSyncStatus("(同期失敗)");
+    setSyncStatus("(オフライン稼働中)");
   }
 }
 
 async function syncWithCloud() {
+  saveToLocalStorage();
   if (GAS_API_URL.includes("YOUR_GAS_WEB_APP_URL")) {
-    alert("GAS_API_URLを設定してください。");
+    alert("ローカルに保存しました。(GAS_API_URL未設定)");
+    setSyncStatus("(ローカル保存)");
     return;
   }
-  setSyncStatus("(保存中...)");
+  setSyncStatus("(クラウド保存中...)");
   
   let inventoryList = [];
   Object.keys(storeDataMap).forEach(sId => {
@@ -318,12 +368,12 @@ async function syncWithCloud() {
     });
     const json = await res.json();
     if (json.status === "success") {
-      setSyncStatus("(保存完了)");
+      setSyncStatus("(クラウド保存完了)");
     } else {
       setSyncStatus("(保存エラー)");
     }
   } catch(e) {
-    setSyncStatus("(通信エラー)");
+    setSyncStatus("(通信エラー・ローカル保存済)");
   }
 }
 
@@ -334,7 +384,7 @@ function setSyncStatus(txt) {
 
 let saveTimer = null;
 function triggerAutoSave() {
-  if (GAS_API_URL.includes("YOUR_GAS_WEB_APP_URL")) return;
+  saveToLocalStorage();
   setSyncStatus("(変更有・保存待ち)");
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
@@ -369,8 +419,6 @@ function initStoreData(storeId) {
 }
 
 function initData() {
-  initStoreData(currentStoreId);
-  renderStoreSelector();
   loadFromCloud();
 }
 
@@ -391,29 +439,25 @@ function switchMode(mode, btn) {
   }
 }
 
-function renderStoreSelector() {
-  const sel = document.getElementById('storeSelector');
-  if (!sel) return;
-  sel.innerHTML = '';
-  storesData.forEach(s => {
-    const opt = document.createElement('option');
-    opt.value = s.id;
-    opt.innerText = s.name;
-    if (s.id === currentStoreId) opt.selected = true;
-    sel.appendChild(opt);
-  });
-  const cur = storesData.find(s => s.id === currentStoreId);
-  document.getElementById('currentStoreDisplay').innerText = cur ? cur.name : "";
+function updateStoreDisplay() {
+  const cur = storesData.find(s => s.id === currentStoreId) || storesData[0];
+  if (cur) {
+    currentStoreId = cur.id;
+    document.getElementById('currentStoreDisplay').innerText = cur.name;
+    localStorage.setItem('kitte_current_store_id', currentStoreId);
+  }
 }
 
-function changeCurrentStore(id) {
+// マスタ画面からのみ店舗を選択・切り替え可能にする
+function selectActiveStore(id) {
   currentStoreId = parseInt(id, 10);
   initStoreData(currentStoreId);
-  renderStoreSelector();
+  updateStoreDisplay();
+  renderStoreMasterList();
   renderItems(currentCategory);
+  alert(`店舗を「${document.getElementById('currentStoreDisplay').innerText}」に切り替えました。`);
 }
 
-// 店舗ごとの非表示（取り扱い有無）切り替え
 function toggleHideItem(id) {
   initStoreData(currentStoreId);
   const hiddenMap = storeDataMap[currentStoreId].hiddenItems;
@@ -579,7 +623,7 @@ function getSummaryValues() {
   let stampAmt = 0, postAmt = 0, revAmt = 0;
 
   masterData.forEach(item => {
-    if (sData.hiddenItems[item.id]) return; // 非表示アイテムは集計から除外
+    if (sData.hiddenItems[item.id]) return;
     const inv = sData.inventory[item.id];
     let totalStock = 0;
     if (item.isLetterPack) {
@@ -609,6 +653,34 @@ function calcSummary() {
   document.getElementById('sum-revenue').innerText = `${vals.revAmt.toLocaleString()} 円`;
   document.getElementById('sum-postal-total').innerText = `${vals.postalTotal.toLocaleString()} 円`;
   document.getElementById('sum-total-cash').innerText = `${vals.totalCash.toLocaleString()} 円`;
+}
+
+// ワンタップ共有機能（LINEや社内チャットに買受サマリーを送信）
+function shareOrderSummary() {
+  const vals = getSummaryValues();
+  const curStore = storesData.find(s => s.id === currentStoreId);
+  const storeName = curStore ? curStore.name : "店舗";
+
+  let text = `【${storeName}】切手・印紙 買受依頼メモ\n`;
+  text += `------------------------\n`;
+  text += `・郵便切手類 合計: ¥${vals.stampAmt.toLocaleString()}\n`;
+  text += `・葉書/LP 合計: ¥${vals.postAmt.toLocaleString()}\n`;
+  text += `・収入印紙 合計: ¥${vals.revAmt.toLocaleString()}\n`;
+  text += `・切手等 計: ¥${vals.postalTotal.toLocaleString()}\n`;
+  text += `・レジ出金額(前渡金): ¥${vals.totalCash.toLocaleString()}\n`;
+  text += `------------------------\n`;
+  text += `確認よろしくお願いいたします。`;
+
+  if (navigator.share) {
+    navigator.share({
+      title: '切手・印紙 買受依頼',
+      text: text
+    }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(text).then(() => {
+      alert("買受依頼メモをクリップボードにコピーしました！LINE等に貼り付けて送信できます。");
+    });
+  }
 }
 
 function renderCoordManager() {
@@ -685,16 +757,20 @@ function updateSpecialText(key, val) {
   }
 }
 
+// --- 店舗マスタ管理（ここで選択・切り替えした店舗が記憶される） ---
 function renderStoreMasterList() {
   const container = document.getElementById('store-list-container');
   if (!container) return;
   container.innerHTML = '';
   storesData.forEach(s => {
+    const isCurrent = s.id === currentStoreId;
     const div = document.createElement('div');
     div.className = 'master-list-item';
+    div.style.borderLeft = isCurrent ? "4px solid #1976d2" : "none";
     div.innerHTML = `
-      <span><b>${s.name}</b></span>
+      <span><b>${s.name}</b> ${isCurrent ? '<b>(現在選択中)</b>' : ''}</span>
       <div>
+        ${!isCurrent ? `<button class="btn-edit" style="background:#1976d2;" onclick="selectActiveStore(${s.id})">この店舗に切替</button>` : ''}
         <button class="btn-edit" onclick="editStore(${s.id})">編集</button>
         <button class="btn-del" onclick="deleteStore(${s.id})">削除</button>
       </div>
@@ -720,7 +796,7 @@ function saveStoreMaster() {
 
   document.getElementById('storeNameInput').value = '';
   renderStoreMasterList();
-  renderStoreSelector();
+  updateStoreDisplay();
   syncWithCloud();
   alert("店舗マスタを保存しました！");
 }
@@ -740,7 +816,7 @@ function deleteStore(id) {
     storesData = storesData.filter(st => st.id !== id);
     if (currentStoreId === id) currentStoreId = storesData[0].id;
     renderStoreMasterList();
-    renderStoreSelector();
+    updateStoreDisplay();
     renderItems(currentCategory);
     syncWithCloud();
   }
@@ -854,7 +930,7 @@ function addCustomTextItem() {
   document.getElementById('customTextVal').value = '';
   renderCustomTextList();
   syncWithCloud();
-  alert("印字テキストを追加しました！プレビュー・座標画面で位置を調整できます。");
+  alert("印字テキストを追加しました！");
 }
 
 function deleteCustomText(key) {
@@ -865,7 +941,6 @@ function deleteCustomText(key) {
   }
 }
 
-// プレビュー描画（非表示アイテムは完全に除外）
 function updateCanvas() {
   const canvas = document.getElementById('formCanvas');
   if (!canvas) return;
@@ -914,9 +989,8 @@ function updateCanvas() {
   initStoreData(currentStoreId);
   const sData = storeDataMap[currentStoreId];
 
-  // 1. 各商品の赤字描画（非表示アイテムは除外）
   masterData.forEach(item => {
-    if (sData.hiddenItems[item.id]) return; 
+    if (sData.hiddenItems[item.id]) return;
     const inv = sData.inventory[item.id];
     let totalStock = 0;
     if (item.isLetterPack) {
@@ -934,7 +1008,6 @@ function updateCanvas() {
     }
   });
 
-  // 2. 特殊・サマリー項目等の描画
   const summaryVals = getSummaryValues();
   const summaryMap = {
     sum_stamps: `${summaryVals.stampAmt.toLocaleString()} 円`,
@@ -977,9 +1050,9 @@ function resetAllInputs() {
   }
 }
 
-initData();
+// 初期化実行
 preloadBackground();
-renderItems('all');
+initData();
 </script>
 
 </body>
