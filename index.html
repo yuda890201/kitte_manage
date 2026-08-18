@@ -75,7 +75,6 @@
     .btn-step-v { width: 100%; height: 22px; border: 1px solid #ccc; background: #fff; border-radius: 3px; font-weight: bold; cursor: pointer; font-size: 0.8rem; line-height: 1; }
     .slot-input { width: 100%; height: 26px; text-align: center; font-size: 0.9rem; border: 1px solid #ccc; border-radius: 3px; font-weight: bold; }
 
-    /* --- 横画面（またはPC等）対応の左右分割レイアウト --- */
     .preview-layout { display: flex; flex-direction: column; gap: 16px; }
     @media (min-width: 850px) {
       .preview-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
@@ -163,10 +162,8 @@
     </div>
   </div>
 
-  <!-- 【ビュー2】：プレビュー画面（横画面で左右分割レイアウト） -->
   <div id="view-preview" class="section-view">
     <div class="preview-layout">
-      <!-- 左側：プレビュー -->
       <div class="preview-card">
         <div class="preview-title" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
           <span style="font-weight:bold; color:var(--primary);">請求書 プレビュー</span>
@@ -178,7 +175,6 @@
         <button class="btn-action-main" onclick="downloadFormImage()">📥 完成した請求書画像をダウンロード</button>
       </div>
 
-      <!-- 右側：← →ボタン対応の座標調整マネージャー -->
       <div class="coord-manager">
         <h3 style="font-size:0.95rem; color:#e65100; margin-bottom:6px;">📍 印刷項目・座標（← →微調整対応）</h3>
         <div id="coord-rows-container"></div>
@@ -256,11 +252,11 @@ let masterData = [
 ];
 
 let specialPrintData = [
-  { key: "sum_stamps", name: "【サマリー】郵便切手類 合計金額", x: 700, y: 1100 },
-  { key: "sum_postcards", name: "【サマリー】葉書・レターパック 合計金額", x: 700, y: 1140 },
-  { key: "sum_revenue", name: "【サマリー】収入印紙 合計金額", x: 700, y: 1180 },
-  { key: "sum_postal_total", name: "【サマリー】切手等 計（印紙除く）", x: 700, y: 1220 },
-  { key: "sum_total_cash", name: "【サマリー】レジ出金額(商品前渡金 総額)", x: 700, y: 1270 },
+  { key: "sum_stamps", name: "【サマリー】郵便切手類 合計 (数量・金額)", x: 700, y: 1100 },
+  { key: "sum_postcards", name: "【サマリー】葉書・LP 合計 (数量・金額)", x: 700, y: 1140 },
+  { key: "sum_revenue", name: "【サマリー】収入印紙 合計 (数量・金額/￥付)", x: 700, y: 1180 },
+  { key: "sum_postal_total", name: "【サマリー】切手等 計 (印紙除く/￥付)", x: 700, y: 1220 },
+  { key: "sum_total_cash", name: "【サマリー】レジ出金額(前渡金 総額/￥付)", x: 700, y: 1270 },
   { key: "print_date", name: "【印字】作成年月日", x: 250, y: 220 },
   { key: "owner_seal", name: "【印字・編集可】オーナー印", x: 900, y: 220, editableText: "印" }
 ];
@@ -626,10 +622,13 @@ function filterCategory(cat, btn) {
   renderItems(currentCategory);
 }
 
+// 買受サマリー計算（合計金額だけでなく合計数量も算出）
 function getSummaryValues() {
   initStoreData(currentStoreId);
   const sData = storeDataMap[currentStoreId];
-  let stampAmt = 0, postAmt = 0, revAmt = 0;
+  let stampAmt = 0, stampQty = 0;
+  let postAmt = 0, postQty = 0;
+  let revAmt = 0, revQty = 0;
 
   masterData.forEach(item => {
     if (sData.hiddenItems[item.id]) return;
@@ -643,16 +642,29 @@ function getSummaryValues() {
     }
 
     if (item.minStock > 0 && totalStock < item.minStock) {
-      const amt = item.unit * item.price;
-      if (item.category === '印紙') revAmt += amt;
-      else if (item.category === '切手') stampAmt += amt;
-      else postAmt += amt;
+      const orderQty = item.unit;
+      const amt = orderQty * item.price;
+      if (item.category === '印紙') {
+        revAmt += amt;
+        revQty += orderQty;
+      } else if (item.category === '切手') {
+        stampAmt += amt;
+        stampQty += orderQty;
+      } else {
+        postAmt += amt;
+        postQty += orderQty;
+      }
     }
   });
 
   const postalTotal = stampAmt + postAmt;
   const totalCash = postalTotal + revAmt;
-  return { stampAmt, postAmt, revAmt, postalTotal, totalCash };
+  return { 
+    stampAmt, stampQty, 
+    postAmt, postQty, 
+    revAmt, revQty, 
+    postalTotal, totalCash 
+  };
 }
 
 function calcSummary() {
@@ -664,7 +676,33 @@ function calcSummary() {
   document.getElementById('sum-total-cash').innerText = `${vals.totalCash.toLocaleString()} 円`;
 }
 
-// --- 座標マネージャー（スライダー ＋ ← →ボタンによる1px微調整対応） ---
+function shareOrderSummary() {
+  const vals = getSummaryValues();
+  const curStore = storesData.find(s => s.id === currentStoreId);
+  const storeName = curStore ? curStore.name : "店舗";
+
+  let text = `【${storeName}】切手・印紙 買受依頼メモ\n`;
+  text += `------------------------\n`;
+  text += `・郵便切手類 合計: ¥${vals.stampAmt.toLocaleString()}\n`;
+  text += `・葉書/LP 合計: ¥${vals.postAmt.toLocaleString()}\n`;
+  text += `・収入印紙 合計: ¥${vals.revAmt.toLocaleString()}\n`;
+  text += `・切手等 計: ¥${vals.postalTotal.toLocaleString()}\n`;
+  text += `・レジ出金額(前渡金): ¥${vals.totalCash.toLocaleString()}\n`;
+  text += `------------------------\n`;
+  text += `確認よろしくお願いいたします。`;
+
+  if (navigator.share) {
+    navigator.share({
+      title: '切手・印紙 買受依頼',
+      text: text
+    }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(text).then(() => {
+      alert("買受依頼メモをクリップボードにコピーしました！LINE等に貼り付けて送信できます。");
+    });
+  }
+}
+
 function renderCoordManager() {
   const container = document.getElementById('coord-rows-container');
   if (!container) return;
@@ -722,7 +760,6 @@ function renderCoordManager() {
   });
 }
 
-// ← →ボタンで1pxずつ増減させる処理（商品用）
 function adjustCoord(id, axis, delta) {
   const item = masterData.find(i => i.id === id);
   if (item) {
@@ -736,7 +773,6 @@ function adjustCoord(id, axis, delta) {
   }
 }
 
-// ← →ボタンで1pxずつ増減させる処理（特殊・サマリー項目用）
 function adjustSpecialCoord(key, axis, delta) {
   const sp = specialPrintData.find(s => s.key === key);
   if (sp) {
@@ -964,6 +1000,7 @@ function deleteCustomText(key) {
   }
 }
 
+// プレビュー描画（商品名＋数量＋金額、およびサマリーの仕様対応）
 function updateCanvas() {
   const canvas = document.getElementById('formCanvas');
   if (!canvas) return;
@@ -1012,6 +1049,7 @@ function updateCanvas() {
   initStoreData(currentStoreId);
   const sData = storeDataMap[currentStoreId];
 
+  // 1. 各商品の赤字描画（商品名 ＋ 数量 ＋ 金額）
   masterData.forEach(item => {
     if (sData.hiddenItems[item.id]) return;
     const inv = sData.inventory[item.id];
@@ -1026,18 +1064,21 @@ function updateCanvas() {
     if (item.minStock > 0 && totalStock < item.minStock) {
       const qty = item.unit;
       const amt = qty * item.price;
+      // 商品名、数量、金額を左から順に印字
+      ctx.fillText(item.name, item.x - 120, item.y);
       ctx.fillText(qty, item.x, item.y);
       ctx.fillText(amt, item.x + 110, item.y);
     }
   });
 
-  const summaryVals = getSummaryValues();
+  // 2. 特殊項目・サマリー等の描画
+  const vals = getSummaryValues();
   const summaryMap = {
-    sum_stamps: `${summaryVals.stampAmt.toLocaleString()} 円`,
-    sum_postcards: `${summaryVals.postAmt.toLocaleString()} 円`,
-    sum_revenue: `${summaryVals.revAmt.toLocaleString()} 円`,
-    sum_postal_total: `${summaryVals.postalTotal.toLocaleString()} 円`,
-    sum_total_cash: `${summaryVals.totalCash.toLocaleString()} 円`,
+    sum_stamps: `${vals.stampQty}枚 / ${vals.stampAmt.toLocaleString()}`, // 円なし、合計数量＋金額
+    sum_postcards: `${vals.postQty}枚 / ${vals.postAmt.toLocaleString()}`, // 円なし、合計数量＋金額
+    sum_revenue: `${vals.revQty}枚 / ￥${vals.revAmt.toLocaleString()}`,   // 円なし、合計数量＋金額（※買受合計額用として￥付きも対応）
+    sum_postal_total: `￥${vals.postalTotal.toLocaleString()}`,          // 切手等計（￥付き）
+    sum_total_cash: `￥${vals.totalCash.toLocaleString()}`,              // レジ出金額（￥付き）
     print_date: new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })
   };
 
