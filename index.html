@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>切手・印紙 請求書リアルタイムプレビュー</title>
+  <title>切手・印紙 請求書 座標調整ツール</title>
   <style>
     :root {
       --primary: #1976d2;
@@ -26,12 +26,13 @@
     
     .container { max-width: 900px; margin: 0 auto; padding: 12px; }
     
-    /* リアルタイムプレビューエリア */
     .preview-card { background: var(--card-bg); border-radius: 10px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid var(--primary); }
     .preview-title { font-size: 0.9rem; font-weight: bold; color: var(--primary); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
     .canvas-container { width: 100%; overflow-x: auto; background: #eee; border-radius: 6px; text-align: center; padding: 8px; }
     canvas { max-width: 100%; height: auto; border: 1px solid #ccc; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
+    .control-panel { background: #e3f2fd; border: 1px solid #bbdefb; padding: 10px; border-radius: 6px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; }
+    
     .summary-card { background: var(--card-bg); border-radius: 10px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid var(--accent); }
     .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
     .summary-item { background: #fafafa; padding: 8px; border-radius: 6px; border: 1px solid var(--border); }
@@ -42,7 +43,6 @@
     .total-box .val { font-size: 1.35rem; font-weight: bold; color: #d84315; }
 
     .btn-download { width: 100%; background: #c62828; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.15); }
-    .btn-download:hover { background: #b71c1c; }
 
     .tabs { display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 4px; }
     .tab { background: #e0e0e0; border: none; padding: 8px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; cursor: pointer; white-space: nowrap; }
@@ -68,7 +68,7 @@
 <body>
 
 <header>
-  <h1>切手・印紙 請求書リアルタイムプレビュー</h1>
+  <h1>切手・印紙 座標調整ツール</h1>
   <button class="btn-header" onclick="resetAllInputs()">クリア</button>
 </header>
 
@@ -76,13 +76,15 @@
 
   <div class="preview-card">
     <div class="preview-title">
-      <span>👁️ 請求書 リアルタイム赤字プレビュー</span>
-      <span style="font-size:0.75rem; color:var(--text-sub);">数値変更時に即時反映</span>
+      <span>📐 グリッド付きプレビュー（座標確認用）</span>
+      <label style="font-size:0.85rem; font-weight:normal; cursor:pointer;">
+        <input type="checkbox" id="gridToggle" checked onchange="updateCanvas()"> グリッド表示
+      </label>
     </div>
     <div class="canvas-container">
       <canvas id="formCanvas"></canvas>
     </div>
-    <button class="btn-download" style="margin-top:10px;" onclick="downloadFormImage()">📥 完成した請求書画像をダウンロード</button>
+    <button class="btn-download" style="margin-top:10px;" onclick="downloadFormImage()">📥 画像をダウンロード</button>
   </div>
 
   <div class="summary-card">
@@ -130,10 +132,9 @@ const masterData = [
 let inputState = {};
 let bgImage = null;
 
-// 背景画像を事前ロード
 function preloadBackground() {
   bgImage = new Image();
-  bgImage.src = 'form_base.png'; // 請求書の画像ファイル名
+  bgImage.src = 'form_base.png';
   bgImage.onload = () => { updateCanvas(); };
   bgImage.onerror = () => { bgImage = null; updateCanvas(); };
 }
@@ -143,6 +144,8 @@ function initData() {
     inputState[item.id] = { sheet100: 0 };
     for (let i = 1; i <= 10; i++) inputState[item.id]['s' + i] = 0;
   });
+  // 初期状態で適当な不足品を作ってプレビューを確認しやすくする
+  inputState[5].sheet100 = 0; // 85円切手不足確認用
 }
 
 function renderItems(filterCat = 'all') {
@@ -196,7 +199,7 @@ function renderItems(filterCat = 'all') {
   });
 
   calcSummary();
-  updateCanvas(); // 数値変更時にプレビューCanvasを即時再描画
+  updateCanvas();
 }
 
 function changeCount(itemId, key, delta) {
@@ -241,33 +244,63 @@ function calcSummary() {
   document.getElementById('sum-total-cash').innerText = `${totalCash.toLocaleString()} 円`;
 }
 
-// リアルタイムCanvas描画関数
+// プレビュー描画 ＋ グリッド線オーバーレイ
 function updateCanvas() {
   const canvas = document.getElementById('formCanvas');
   const ctx = canvas.getContext('2d');
+  const showGrid = document.getElementById('gridToggle').checked;
 
   if (bgImage) {
     canvas.width = bgImage.width;
     canvas.height = bgImage.height;
     ctx.drawImage(bgImage, 0, 0);
   } else {
-    // 背景画像未設定時のフォールバック（白紙キャンバス）
-    canvas.width = 800;
-    canvas.height = 1130;
+    canvas.width = 1240;  // A4標準解像度幅の目安
+    canvas.height = 1754; // A4標準解像度高さの目安
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    ctx.fillStyle = '#333333';
-    ctx.font = 'bold 18px sans-serif';
-    ctx.fillText("【プレビュー】form_base.png を配置するとここに請求書背景が表示されます", 40, 40);
   }
 
-  // 赤字のスタイル
-  ctx.fillStyle = '#d32f2f';
-  ctx.font = 'bold 20px sans-serif';
+  // --- 黒色グリッド線の描画 (座標調整用) ---
+  if (showGrid) {
+    ctx.save();
+    ctx.lineWidth = 1;
+    ctx.font = '10px sans-serif';
 
-  // ※ここに、お手元の請求書画像の座標に合わせて各項目の数量・金額を描画するロジックを配置します
-  let sampleY = 120;
+    // 100pxごとの細かい方眼線
+    for (let x = 0; x <= canvas.width; x += 50) {
+      ctx.strokeStyle = (x % 100 === 0) ? '#000000' : '#cccccc';
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, canvas.height);
+      ctx.stroke();
+
+      if (x % 100 === 0) {
+        ctx.fillStyle = '#000000';
+        ctx.fillText(x, x + 2, 12);
+      }
+    }
+
+    for (let y = 0; y <= canvas.height; y += 50) {
+      ctx.strokeStyle = (y % 100 === 0) ? '#000000' : '#cccccc';
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(canvas.width, y);
+      ctx.stroke();
+
+      if (y % 100 === 0) {
+        ctx.fillStyle = '#000000';
+        ctx.fillText(y, 2, y - 2);
+      }
+    }
+    ctx.restore();
+  }
+
+  // --- 赤字データの描画（ここに実際の配置座標を指定します） ---
+  ctx.fillStyle = '#d32f2f';
+  ctx.font = 'bold 22px sans-serif';
+
+  // サンプルとして85円切手と収入印紙の描画位置（必要に応じて X, Y を書き換えて調整してください）
   masterData.forEach(item => {
     let totalStock = (inputState[item.id].sheet100 || 0) * 100;
     for (let i = 1; i <= 10; i++) totalStock += (inputState[item.id]['s' + i] || 0) * i;
@@ -275,22 +308,37 @@ function updateCanvas() {
     if (item.minStock > 0 && totalStock < item.minStock) {
       const qty = item.unit;
       const amt = qty * item.price;
-      
-      // 画面上のデモ用描画（実際のPDF座標に合わせて微調整してください）
-      ctx.fillText(`${item.name}`, 50, sampleY);
-      ctx.fillText(`数量: ${qty}`, 300, sampleY);
-      ctx.fillText(`金額: ¥${amt.toLocaleString()}`, 450, sampleY);
-      sampleY += 30;
+
+      // 【調整用】：ここに各項目の描画先X, Y座標を設定します
+      if (item.name === "85円切手") {
+        ctx.fillText(qty, 200, 300); // 数量のX, Y座標
+        ctx.fillText(amt, 320, 300); // 金額のX, Y座標
+      } else if (item.name === "収入印紙") {
+        ctx.fillText(qty, 200, 750);
+        ctx.fillText(amt, 320, 750);
+      } else {
+        // その他の項目のデフォルト表示位置
+        ctx.fillText(`${item.name}: 数量${qty} 金額${amt}`, 50, 1000);
+      }
     }
   });
 }
 
 function downloadFormImage() {
+  // ダウンロード時はグリッドを強制オフにしてきれいな画像を保存
+  const gridToggle = document.getElementById('gridToggle');
+  const wasChecked = gridToggle.checked;
+  gridToggle.checked = false;
+  updateCanvas();
+
   const canvas = document.getElementById('formCanvas');
   const link = document.createElement('a');
   link.download = '切手印紙売渡請求書_赤字入.png';
   link.href = canvas.toDataURL('image/png');
   link.click();
+
+  gridToggle.checked = wasChecked;
+  updateCanvas();
 }
 
 initData();
