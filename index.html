@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>切手・印紙 請求書 座標調整ツール</title>
+  <title>切手・印紙 請求書 座標ビジュアル調整ツール</title>
   <style>
     :root {
       --primary: #1976d2;
@@ -28,11 +28,16 @@
     
     .preview-card { background: var(--card-bg); border-radius: 10px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid var(--primary); }
     .preview-title { font-size: 0.9rem; font-weight: bold; color: var(--primary); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
-    .canvas-container { width: 100%; overflow-x: auto; background: #eee; border-radius: 6px; text-align: center; padding: 8px; }
-    canvas { max-width: 100%; height: auto; border: 1px solid #ccc; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .canvas-container { width: 100%; overflow: auto; max-height: 500px; background: #eee; border-radius: 6px; text-align: center; padding: 8px; border: 1px solid #ccc; }
+    canvas { background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
-    .control-panel { background: #e3f2fd; border: 1px solid #bbdefb; padding: 10px; border-radius: 6px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; }
-    
+    /* 座標調整パネル */
+    .coord-panel { background: #e3f2fd; border: 1px solid #bbdefb; padding: 12px; border-radius: 8px; margin-top: 12px; }
+    .coord-panel h4 { font-size: 0.9rem; color: #0d47a1; margin-bottom: 8px; }
+    .coord-row { display: flex; justify-content: space-between; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; margin-bottom: 6px; border: 1px solid #d0d7de; font-size: 0.85rem; }
+    .coord-row input[type="range"] { width: 120px; }
+    .coord-row span { font-weight: bold; color: #333; min-width: 50px; text-align: right; }
+
     .summary-card { background: var(--card-bg); border-radius: 10px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid var(--accent); }
     .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
     .summary-item { background: #fafafa; padding: 8px; border-radius: 6px; border: 1px solid var(--border); }
@@ -42,7 +47,7 @@
     .total-box .label { font-size: 0.8rem; color: #e65100; font-weight: bold; }
     .total-box .val { font-size: 1.35rem; font-weight: bold; color: #d84315; }
 
-    .btn-download { width: 100%; background: #c62828; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.15); }
+    .btn-download { width: 100%; background: #c62828; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.15); margin-top: 10px; }
 
     .tabs { display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 4px; }
     .tab { background: #e0e0e0; border: none; padding: 8px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; cursor: pointer; white-space: nowrap; }
@@ -76,15 +81,33 @@
 
   <div class="preview-card">
     <div class="preview-title">
-      <span>📐 グリッド付きプレビュー（座標確認用）</span>
+      <span>📐 超高精度グリッド＆座標調整</span>
       <label style="font-size:0.85rem; font-weight:normal; cursor:pointer;">
         <input type="checkbox" id="gridToggle" checked onchange="updateCanvas()"> グリッド表示
       </label>
     </div>
+    
     <div class="canvas-container">
       <canvas id="formCanvas"></canvas>
     </div>
-    <button class="btn-download" style="margin-top:10px;" onclick="downloadFormImage()">📥 画像をダウンロード</button>
+
+    <div class="coord-panel">
+      <h4>📍 描画位置（座標）のリアルタイム調整</h4>
+      
+      <div class="coord-row">
+        <span>85円切手</span>
+        <div>X: <input type="range" min="0" max="1000" value="200" id="pos_stamp85_x" oninput="updateCanvas()"> <span id="val_stamp85_x">200</span>px</div>
+        <div>Y: <input type="range" min="0" max="1500" value="300" id="pos_stamp85_y" oninput="updateCanvas()"> <span id="val_stamp85_y">300</span>px</div>
+      </div>
+
+      <div class="coord-row">
+        <span>収入印紙</span>
+        <div>X: <input type="range" min="0" max="1000" value="200" id="pos_rev_x" oninput="updateCanvas()"> <span id="val_rev_x">200</span>px</div>
+        <div>Y: <input type="range" min="0" max="1500" value="750" id="pos_rev_y" oninput="updateCanvas()"> <span id="val_rev_y">750</span>px</div>
+      </div>
+    </div>
+
+    <button class="btn-download" onclick="downloadFormImage()">📥 グリッドを消して画像をダウンロード</button>
   </div>
 
   <div class="summary-card">
@@ -144,7 +167,6 @@ function initData() {
     inputState[item.id] = { sheet100: 0 };
     for (let i = 1; i <= 10; i++) inputState[item.id]['s' + i] = 0;
   });
-  // 初期状態で適当な不足品を作ってプレビューを確認しやすくする
   inputState[5].sheet100 = 0; // 85円切手不足確認用
 }
 
@@ -244,7 +266,6 @@ function calcSummary() {
   document.getElementById('sum-total-cash').innerText = `${totalCash.toLocaleString()} 円`;
 }
 
-// プレビュー描画 ＋ グリッド線オーバーレイ
 function updateCanvas() {
   const canvas = document.getElementById('formCanvas');
   const ctx = canvas.getContext('2d');
@@ -255,52 +276,76 @@ function updateCanvas() {
     canvas.height = bgImage.height;
     ctx.drawImage(bgImage, 0, 0);
   } else {
-    canvas.width = 1240;  // A4標準解像度幅の目安
-    canvas.height = 1754; // A4標準解像度高さの目安
+    canvas.width = 1240;
+    canvas.height = 1754;
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  // --- 黒色グリッド線の描画 (座標調整用) ---
+  // --- 超高精度グリッド線の描画 (10px刻み＆50px刻み) ---
   if (showGrid) {
     ctx.save();
     ctx.lineWidth = 1;
-    ctx.font = '10px sans-serif';
+    
+    // 10pxの極細グリッド
+    for (let x = 0; x <= canvas.width; x += 10) {
+      ctx.strokeStyle = (x % 50 === 0) ? '#999999' : '#e0e0e0';
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, canvas.height);
+      ctx.stroke();
+    }
+    for (let y = 0; y <= canvas.height; y += 10) {
+      ctx.strokeStyle = (y % 50 === 0) ? '#999999' : '#e0e0e0';
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(canvas.width, y);
+      ctx.stroke();
+    }
 
-    // 100pxごとの細かい方眼線
+    // 50pxごとの太線と座標数値
+    ctx.font = '10px sans-serif';
     for (let x = 0; x <= canvas.width; x += 50) {
-      ctx.strokeStyle = (x % 100 === 0) ? '#000000' : '#cccccc';
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = (x % 100 === 0) ? 1.5 : 0.8;
       ctx.beginPath();
       ctx.moveTo(x, 0);
       ctx.lineTo(x, canvas.height);
       ctx.stroke();
 
-      if (x % 100 === 0) {
-        ctx.fillStyle = '#000000';
-        ctx.fillText(x, x + 2, 12);
-      }
+      ctx.fillStyle = '#000000';
+      ctx.fillText(x, x + 2, 12);
     }
 
     for (let y = 0; y <= canvas.height; y += 50) {
-      ctx.strokeStyle = (y % 100 === 0) ? '#000000' : '#cccccc';
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = (y % 100 === 0) ? 1.5 : 0.8;
       ctx.beginPath();
       ctx.moveTo(0, y);
       ctx.lineTo(canvas.width, y);
       ctx.stroke();
 
-      if (y % 100 === 0) {
-        ctx.fillStyle = '#000000';
-        ctx.fillText(y, 2, y - 2);
-      }
+      ctx.fillStyle = '#000000';
+      ctx.fillText(y, 2, y - 2);
     }
     ctx.restore();
   }
 
-  // --- 赤字データの描画（ここに実際の配置座標を指定します） ---
+  // --- スライダーから現在の座標値を取得して反映 ---
+  const stamp85_x = parseInt(document.getElementById('pos_stamp85_x').value);
+  const stamp85_y = parseInt(document.getElementById('pos_stamp85_y').value);
+  document.getElementById('val_stamp85_x').innerText = stamp85_x;
+  document.getElementById('val_stamp85_y').innerText = stamp85_y;
+
+  const rev_x = parseInt(document.getElementById('pos_rev_x').value);
+  const rev_y = parseInt(document.getElementById('pos_rev_y').value);
+  document.getElementById('val_rev_x').innerText = rev_x;
+  document.getElementById('val_rev_y').innerText = rev_y;
+
+  // --- 赤字データの描画 ---
   ctx.fillStyle = '#d32f2f';
   ctx.font = 'bold 22px sans-serif';
 
-  // サンプルとして85円切手と収入印紙の描画位置（必要に応じて X, Y を書き換えて調整してください）
   masterData.forEach(item => {
     let totalStock = (inputState[item.id].sheet100 || 0) * 100;
     for (let i = 1; i <= 10; i++) totalStock += (inputState[item.id]['s' + i] || 0) * i;
@@ -309,23 +354,18 @@ function updateCanvas() {
       const qty = item.unit;
       const amt = qty * item.price;
 
-      // 【調整用】：ここに各項目の描画先X, Y座標を設定します
       if (item.name === "85円切手") {
-        ctx.fillText(qty, 200, 300); // 数量のX, Y座標
-        ctx.fillText(amt, 320, 300); // 金額のX, Y座標
+        ctx.fillText(qty, stamp85_x, stamp85_y);
+        ctx.fillText(amt, stamp85_x + 120, stamp85_y);
       } else if (item.name === "収入印紙") {
-        ctx.fillText(qty, 200, 750);
-        ctx.fillText(amt, 320, 750);
-      } else {
-        // その他の項目のデフォルト表示位置
-        ctx.fillText(`${item.name}: 数量${qty} 金額${amt}`, 50, 1000);
+        ctx.fillText(qty, rev_x, rev_y);
+        ctx.fillText(amt, rev_x + 120, rev_y);
       }
     }
   });
 }
 
 function downloadFormImage() {
-  // ダウンロード時はグリッドを強制オフにしてきれいな画像を保存
   const gridToggle = document.getElementById('gridToggle');
   const wasChecked = gridToggle.checked;
   gridToggle.checked = false;
