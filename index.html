@@ -272,7 +272,7 @@ const defaultSpecialPrintData = [
   { key: "sum_stamps", name: "【サマリー】郵便切手類 合計", x: 700, y: 1100 },
   { key: "sum_postcards", name: "【サマリー】葉書・レターパック 合計", x: 700, y: 1140 },
   { key: "sum_revenue", name: "【サマリー】収入印紙 合計", x: 700, y: 1180 },
-  { key: "sum_revenue_amt", name: "【サマリー】収入印紙 合計(金額のみ)", x: 700, y: 1200 },
+  { key: "sum_revenue_amt", name: "収入印紙 合計(金額のみ)", x: 700, y: 1200 },
   { key: "sum_postal_total", name: "【サマリー】切手等 計（印紙除く）", x: 700, y: 1220 },
   { key: "sum_total_cash", name: "【サマリー】レジ出金額(商品前渡金 総額)", x: 700, y: 1270 },
   { key: "print_date", name: "【印字】作成年月日", x: 250, y: 220 },
@@ -1126,26 +1126,30 @@ function updateCanvas() {
     }
   });
 
-  // 2. 特殊項目・サマリー等の描画
+  // 2. プレビュー描画内のマッピング（keyを上記と完全に一致させる）
+function updateCanvas() {
+  // ... (前略: キャンバス準備と商品印字) ...
+
   const vals = getSummaryValues();
+  // keyをdefaultSpecialPrintDataと完全に一致させて定義
   const summaryMap = {
     sum_stamps: `${vals.stampQty}      ${vals.stampAmt.toLocaleString()}`,
     sum_postcards: `${vals.postQty}      ${vals.postAmt.toLocaleString()}`,
-    sum_revenue: `${vals.revQty}      ${vals.revAmt.toLocaleString()}`,
-    sum_revenue_amt: `￥${vals.revAmt.toLocaleString()}`, // 収入印紙 金額のみ
-    sum_postal_total: `￥${vals.postalTotal.toLocaleString()}`, // 切手等計 金額のみ
+    sum_revenue: `${vals.revQty}      ￥${vals.revAmt.toLocaleString()}`,
+    sum_revenue_amt: `￥${vals.revAmt.toLocaleString()}`,
+    sum_postal_total: `￥${vals.postalTotal.toLocaleString()}`,
     sum_total_cash: `￥${vals.totalCash.toLocaleString()}`,
     print_date: new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })
   };
 
   specialPrintData.forEach(sp => {
+    // マッピング対象がある場合はそのテキストを、なければ編集テキストを印字
     let text = summaryMap[sp.key] || sp.editableText || "";
     if (text) {
       ctx.fillText(text, sp.x, sp.y);
     }
   });
 }
-
 function downloadFormImage() {
   const gridToggle = document.getElementById('gridToggle');
   const wasChecked = gridToggle.checked;
