@@ -31,7 +31,7 @@
     header h1 img { width: 24px; height: 24px; border-radius: 4px; object-fit: cover; }
     .btn-header { background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 12px; border-radius: 4px; font-size: 0.85rem; cursor: pointer; }
     
-    .container { max-width: 900px; margin: 0 auto; padding: 12px; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 12px; }
     
     .mode-tabs { display: flex; background: #ddd; border-radius: 8px; padding: 4px; margin-bottom: 14px; gap: 4px; }
     .mode-tab { flex: 1; background: none; border: none; padding: 10px; font-weight: bold; font-size: 0.8rem; border-radius: 6px; cursor: pointer; text-align: center; color: #555; }
@@ -40,7 +40,6 @@
     .section-view { display: none; }
     .section-view.active { display: block; }
 
-    /* メイン画面の店舗表示バー（誤操作防止のためプルダウン撤去し現在の店舗名のみ表示） */
     .store-bar { background: #e3f2fd; border: 1px solid #bbdefb; padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; font-weight: bold; color: #0d47a1; }
 
     .input-main-container { display: flex; flex-direction: column; gap: 16px; }
@@ -76,15 +75,27 @@
     .btn-step-v { width: 100%; height: 22px; border: 1px solid #ccc; background: #fff; border-radius: 3px; font-weight: bold; cursor: pointer; font-size: 0.8rem; line-height: 1; }
     .slot-input { width: 100%; height: 26px; text-align: center; font-size: 0.9rem; border: 1px solid #ccc; border-radius: 3px; font-weight: bold; }
 
+    /* --- 横画面（またはPC等）対応の左右分割レイアウト --- */
+    .preview-layout { display: flex; flex-direction: column; gap: 16px; }
+    @media (min-width: 850px) {
+      .preview-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+      .preview-card { position: sticky; top: 70px; margin-bottom: 0 !important; }
+    }
+
     .preview-card { background: var(--card-bg); border-radius: 10px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid var(--primary); }
-    .canvas-container { width: 100%; overflow: auto; max-height: 450px; background: #eee; border-radius: 6px; text-align: center; padding: 8px; border: 1px solid #ccc; }
+    .canvas-container { width: 100%; overflow: auto; max-height: 70vh; background: #eee; border-radius: 6px; text-align: center; padding: 8px; border: 1px solid #ccc; }
     canvas { background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     
-    .coord-manager { background: white; border-radius: 10px; padding: 14px; margin-top: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid #ff9800; }
-    .coord-item-row { background: #fafafa; border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; margin-bottom: 6px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; font-size: 0.85rem; }
-    .coord-item-row b { color: #333; flex: 1; min-width: 120px; }
-    .coord-control-group { display: flex; align-items: center; gap: 6px; }
-    .coord-control-group input[type="range"] { width: 90px; }
+    .coord-manager { background: white; border-radius: 10px; padding: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid #ff9800; }
+    .coord-item-row { background: #fafafa; border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; margin-bottom: 6px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px; font-size: 0.8rem; }
+    .coord-item-row b { color: #333; width: 100%; margin-bottom: 2px; }
+    @media (min-width: 850px) {
+      .coord-item-row b { width: auto; flex: 1; margin-bottom: 0; }
+    }
+    .coord-control-group { display: flex; align-items: center; gap: 4px; }
+    .coord-control-group input[type="range"] { width: 70px; }
+    .btn-step-coord { background: #e0e0e0; border: 1px solid #ccc; width: 24px; height: 24px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
+    .btn-step-coord:active { background: #bdbdbd; }
 
     .master-card { background: white; border-radius: 10px; padding: 14px; margin-bottom: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid #4caf50; }
     .master-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
@@ -110,7 +121,6 @@
 
 <div class="container">
 
-  <!-- メイン画面の店舗表示バー（プルダウン排除・誤操作防止） -->
   <div class="store-bar">
     <span>🏪 現在の店舗: <span id="currentStoreDisplay" style="color:#1565c0;">1号店</span></span>
     <span style="font-size:0.75rem; color:#666;">(※店舗変更はマスタ管理画面から)</span>
@@ -153,27 +163,31 @@
     </div>
   </div>
 
+  <!-- 【ビュー2】：プレビュー画面（横画面で左右分割レイアウト） -->
   <div id="view-preview" class="section-view">
-    <div class="preview-card">
-      <div class="preview-title" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-        <span style="font-weight:bold; color:var(--primary);">請求書 プレビュー（赤字合成）</span>
-        <label style="font-size:0.85rem; cursor:pointer;"><input type="checkbox" id="gridToggle" checked onchange="updateCanvas()"> 高精度グリッド線</label>
+    <div class="preview-layout">
+      <!-- 左側：プレビュー -->
+      <div class="preview-card">
+        <div class="preview-title" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-weight:bold; color:var(--primary);">請求書 プレビュー</span>
+          <label style="font-size:0.85rem; cursor:pointer;"><input type="checkbox" id="gridToggle" checked onchange="updateCanvas()"> 高精度グリッド線</label>
+        </div>
+        <div class="canvas-container">
+          <canvas id="formCanvas"></canvas>
+        </div>
+        <button class="btn-action-main" onclick="downloadFormImage()">📥 完成した請求書画像をダウンロード</button>
       </div>
-      <div class="canvas-container">
-        <canvas id="formCanvas"></canvas>
-      </div>
-      <button class="btn-action-main" onclick="downloadFormImage()">📥 完成した請求書画像をダウンロード</button>
-    </div>
 
-    <div class="coord-manager">
-      <h3 style="font-size:0.95rem; color:#e65100; margin-bottom:6px;">📍 印刷項目・座標（X・Y）個別調整</h3>
-      <div id="coord-rows-container"></div>
+      <!-- 右側：← →ボタン対応の座標調整マネージャー -->
+      <div class="coord-manager">
+        <h3 style="font-size:0.95rem; color:#e65100; margin-bottom:6px;">📍 印刷項目・座標（← →微調整対応）</h3>
+        <div id="coord-rows-container"></div>
+      </div>
     </div>
   </div>
 
   <div id="view-master" class="section-view">
     
-    <!-- 店舗マスタ管理（ここで選択した店舗が次回も記憶される） -->
     <div class="master-card">
       <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;">🏪 店舗設定・切り替え</h3>
       <div class="master-form">
@@ -223,7 +237,6 @@ let storesData = [
   { id: 1, name: "1号店" }
 ];
 
-// ローカルストレージまたは初期設定から前回の店舗IDを復元（誤操作防止・記憶）
 let currentStoreId = parseInt(localStorage.getItem('kitte_current_store_id'), 10) || 1;
 
 let masterData = [
@@ -255,7 +268,6 @@ let specialPrintData = [
 let storeDataMap = {};
 let bgImage = null;
 
-// --- オフライン対応（ローカルストレージ自動保存・読み込み） ---
 function saveToLocalStorage() {
   try {
     const data = {
@@ -285,9 +297,7 @@ function loadFromLocalStorage() {
   return false;
 }
 
-// --- クラウド同期 ---
 async function loadFromCloud() {
-  // まずオフラインキャッシュを即時反映して快適に表示
   const hasLocal = loadFromLocalStorage();
   if (hasLocal) {
     initStoreData(currentStoreId);
@@ -448,7 +458,6 @@ function updateStoreDisplay() {
   }
 }
 
-// マスタ画面からのみ店舗を選択・切り替え可能にする
 function selectActiveStore(id) {
   currentStoreId = parseInt(id, 10);
   initStoreData(currentStoreId);
@@ -614,7 +623,7 @@ function filterCategory(cat, btn) {
     btn.style.background = '#1976d2';
     btn.style.color = 'white';
   }
-  renderItems(cat);
+  renderItems(currentCategory);
 }
 
 function getSummaryValues() {
@@ -655,34 +664,7 @@ function calcSummary() {
   document.getElementById('sum-total-cash').innerText = `${vals.totalCash.toLocaleString()} 円`;
 }
 
-// ワンタップ共有機能（LINEや社内チャットに買受サマリーを送信）
-function shareOrderSummary() {
-  const vals = getSummaryValues();
-  const curStore = storesData.find(s => s.id === currentStoreId);
-  const storeName = curStore ? curStore.name : "店舗";
-
-  let text = `【${storeName}】切手・印紙 買受依頼メモ\n`;
-  text += `------------------------\n`;
-  text += `・郵便切手類 合計: ¥${vals.stampAmt.toLocaleString()}\n`;
-  text += `・葉書/LP 合計: ¥${vals.postAmt.toLocaleString()}\n`;
-  text += `・収入印紙 合計: ¥${vals.revAmt.toLocaleString()}\n`;
-  text += `・切手等 計: ¥${vals.postalTotal.toLocaleString()}\n`;
-  text += `・レジ出金額(前渡金): ¥${vals.totalCash.toLocaleString()}\n`;
-  text += `------------------------\n`;
-  text += `確認よろしくお願いいたします。`;
-
-  if (navigator.share) {
-    navigator.share({
-      title: '切手・印紙 買受依頼',
-      text: text
-    }).catch(() => {});
-  } else {
-    navigator.clipboard.writeText(text).then(() => {
-      alert("買受依頼メモをクリップボードにコピーしました！LINE等に貼り付けて送信できます。");
-    });
-  }
-}
-
+// --- 座標マネージャー（スライダー ＋ ← →ボタンによる1px微調整対応） ---
 function renderCoordManager() {
   const container = document.getElementById('coord-rows-container');
   if (!container) return;
@@ -694,12 +676,18 @@ function renderCoordManager() {
     row.innerHTML = `
       <b>${item.name}</b>
       <div class="coord-control-group">
-        X:<input type="range" min="0" max="1200" value="${item.x}" oninput="updateItemCoord(${item.id}, 'x', this.value)">
-        <span id="coord_x_${item.id}" style="width:35px; text-align:right;">${item.x}</span>px
+        X:
+        <button class="btn-step-coord" onclick="adjustCoord(${item.id}, 'x', -1)">←</button>
+        <input type="range" min="0" max="1200" value="${item.x}" oninput="updateItemCoord(${item.id}, 'x', this.value)" id="slider_x_${item.id}">
+        <button class="btn-step-coord" onclick="adjustCoord(${item.id}, 'x', 1)">→</button>
+        <span id="coord_x_${item.id}" style="width:32px; text-align:right;">${item.x}</span>px
       </div>
       <div class="coord-control-group">
-        Y:<input type="range" min="0" max="1700" value="${item.y}" oninput="updateItemCoord(${item.id}, 'y', this.value)">
-        <span id="coord_y_${item.id}" style="width:35px; text-align:right;">${item.y}</span>px
+        Y:
+        <button class="btn-step-coord" onclick="adjustCoord(${item.id}, 'y', -1)">←</button>
+        <input type="range" min="0" max="1700" value="${item.y}" oninput="updateItemCoord(${item.id}, 'y', this.value)" id="slider_y_${item.id}">
+        <button class="btn-step-coord" onclick="adjustCoord(${item.id}, 'y', 1)">→</button>
+        <span id="coord_y_${item.id}" style="width:32px; text-align:right;">${item.y}</span>px
       </div>
     `;
     container.appendChild(row);
@@ -711,28 +699,63 @@ function renderCoordManager() {
     row.style.background = '#e8f5e9';
     let editHtml = '';
     if (sp.key === 'owner_seal') {
-      editHtml = `<input type="text" value="${sp.editableText}" oninput="updateSpecialText('${sp.key}', this.value)" style="width:50px; padding:2px; font-size:0.8rem;">`;
+      editHtml = `<input type="text" value="${sp.editableText}" oninput="updateSpecialText('${sp.key}', this.value)" style="width:40px; padding:2px; font-size:0.8rem;">`;
     }
     row.innerHTML = `
       <b>${sp.name}</b> ${editHtml}
       <div class="coord-control-group">
-        X:<input type="range" min="0" max="1200" value="${sp.x}" oninput="updateSpecialCoord('${sp.key}', 'x', this.value)">
-        <span id="coord_x_${sp.key}" style="width:35px; text-align:right;">${sp.x}</span>px
+        X:
+        <button class="btn-step-coord" onclick="adjustSpecialCoord('${sp.key}', 'x', -1)">←</button>
+        <input type="range" min="0" max="1200" value="${sp.x}" oninput="updateSpecialCoord('${sp.key}', 'x', this.value)" id="slider_x_${sp.key}">
+        <button class="btn-step-coord" onclick="adjustSpecialCoord('${sp.key}', 'x', 1)">→</button>
+        <span id="coord_x_${sp.key}" style="width:32px; text-align:right;">${sp.x}</span>px
       </div>
       <div class="coord-control-group">
-        Y:<input type="range" min="0" max="1700" value="${sp.y}" oninput="updateSpecialCoord('${sp.key}', 'y', this.value)">
-        <span id="coord_y_${sp.key}" style="width:35px; text-align:right;">${sp.y}</span>px
+        Y:
+        <button class="btn-step-coord" onclick="adjustSpecialCoord('${sp.key}', 'y', -1)">←</button>
+        <input type="range" min="0" max="1700" value="${sp.y}" oninput="updateSpecialCoord('${sp.key}', 'y', this.value)" id="slider_y_${sp.key}">
+        <button class="btn-step-coord" onclick="adjustSpecialCoord('${sp.key}', 'y', 1)">→</button>
+        <span id="coord_y_${sp.key}" style="width:32px; text-align:right;">${sp.y}</span>px
       </div>
     `;
     container.appendChild(row);
   });
 }
 
+// ← →ボタンで1pxずつ増減させる処理（商品用）
+function adjustCoord(id, axis, delta) {
+  const item = masterData.find(i => i.id === id);
+  if (item) {
+    item[axis] = Math.max(0, item[axis] + delta);
+    const slider = document.getElementById(`slider_${axis}_${id}`);
+    if (slider) slider.value = item[axis];
+    const span = document.getElementById(`coord_${axis}_${id}`);
+    if (span) span.innerText = item[axis];
+    updateCanvas();
+    triggerAutoSave();
+  }
+}
+
+// ← →ボタンで1pxずつ増減させる処理（特殊・サマリー項目用）
+function adjustSpecialCoord(key, axis, delta) {
+  const sp = specialPrintData.find(s => s.key === key);
+  if (sp) {
+    sp[axis] = Math.max(0, sp[axis] + delta);
+    const slider = document.getElementById(`slider_${axis}_${key}`);
+    if (slider) slider.value = sp[axis];
+    const span = document.getElementById(`coord_${axis}_${key}`);
+    if (span) span.innerText = sp[axis];
+    updateCanvas();
+    triggerAutoSave();
+  }
+}
+
 function updateItemCoord(id, axis, val) {
   const item = masterData.find(i => i.id === id);
   if (item) {
     item[axis] = parseInt(val, 10);
-    document.getElementById(`coord_${axis}_${id}`).innerText = val;
+    const span = document.getElementById(`coord_${axis}_${id}`);
+    if (span) span.innerText = item[axis];
     updateCanvas();
     triggerAutoSave();
   }
@@ -742,7 +765,8 @@ function updateSpecialCoord(key, axis, val) {
   const sp = specialPrintData.find(s => s.key === key);
   if (sp) {
     sp[axis] = parseInt(val, 10);
-    document.getElementById(`coord_${axis}_${key}`).innerText = val;
+    const span = document.getElementById(`coord_${axis}_${key}`);
+    if (span) span.innerText = sp[axis];
     updateCanvas();
     triggerAutoSave();
   }
@@ -757,7 +781,6 @@ function updateSpecialText(key, val) {
   }
 }
 
-// --- 店舗マスタ管理（ここで選択・切り替えした店舗が記憶される） ---
 function renderStoreMasterList() {
   const container = document.getElementById('store-list-container');
   if (!container) return;
@@ -1050,7 +1073,6 @@ function resetAllInputs() {
   }
 }
 
-// 初期化実行
 preloadBackground();
 initData();
 </script>
