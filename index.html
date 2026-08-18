@@ -86,12 +86,14 @@
     canvas { background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     
     .coord-manager { background: white; border-radius: 10px; padding: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid #ff9800; }
-    .coord-item-row { background: #fafafa; border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; margin-bottom: 6px; font-size: 0.8rem; }
-    .coord-item-row b { color: #333; display: block; margin-bottom: 4px; }
-    .coord-sub-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 0.75rem; color: #555; }
+    .coord-item-row { background: #fafafa; border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; margin-bottom: 6px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px; font-size: 0.8rem; }
+    .coord-item-row b { color: #333; width: 100%; margin-bottom: 2px; }
+    @media (min-width: 850px) {
+      .coord-item-row b { width: auto; flex: 1; margin-bottom: 0; }
+    }
     .coord-control-group { display: flex; align-items: center; gap: 4px; }
-    .coord-control-group input[type="range"] { width: 65px; }
-    .btn-step-coord { background: #e0e0e0; border: 1px solid #ccc; width: 22px; height: 22px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.75rem; }
+    .coord-control-group input[type="range"] { width: 70px; }
+    .btn-step-coord { background: #e0e0e0; border: 1px solid #ccc; width: 24px; height: 24px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
     .btn-step-coord:active { background: #bdbdbd; }
 
     .master-card { background: white; border-radius: 10px; padding: 14px; margin-bottom: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid #4caf50; }
@@ -160,6 +162,7 @@
     </div>
   </div>
 
+  <!-- 【ビュー2】：プレビュー画面（横画面で左右分割） -->
   <div id="view-preview" class="section-view">
     <div class="preview-layout">
       <div class="preview-card">
@@ -174,12 +177,13 @@
       </div>
 
       <div class="coord-manager">
-        <h3 style="font-size:0.95rem; color:#e65100; margin-bottom:6px;">📍 商品名・数量・金額 個別座標微調整</h3>
+        <h3 style="font-size:0.95rem; color:#e65100; margin-bottom:6px;">📍 印刷項目・座標（← →微調整対応）</h3>
         <div id="coord-rows-container"></div>
       </div>
     </div>
   </div>
 
+  <!-- 【ビュー3】：マスタ管理画面（テキスト編集対応） -->
   <div id="view-master" class="section-view">
     
     <div class="master-card">
@@ -211,7 +215,7 @@
     </div>
 
     <div class="master-card" style="border-left-color: #2196f3;">
-      <h3 style="font-size:0.95rem; color:#1976d2; margin-bottom:4px;">✏️ プレビュー印字テキスト追加・削除</h3>
+      <h3 style="font-size:0.95rem; color:#1976d2; margin-bottom:4px;">✏️ プレビュー印字テキスト追加・編集・削除</h3>
       <div class="master-form">
         <input type="text" id="customTextKey" placeholder="識別キー (例: note_text)">
         <input type="text" id="customTextVal" placeholder="印字内容 (例: 備考欄メモ等)">
@@ -233,21 +237,21 @@ let storesData = [
 
 let currentStoreId = parseInt(localStorage.getItem('kitte_current_store_id'), 10) || 1;
 
-// 各アイテムに nameX/Y, qtyX/Y, amtX/Y の個別座標を持たせるように拡張
+// 元のシンプルな単一座標（x, y）に戻したマスターデータ
 let masterData = [
-  { id: 1, name: "収入印紙", price: 200, minStock: 100, unit: 100, category: "印紙", hasSheets: true, nx: 100, ny: 750, qx: 300, qy: 750, ax: 450, ay: 750 },
-  { id: 2, name: "10円切手", price: 10, minStock: 100, unit: 100, category: "切手", hasSheets: true, nx: 100, ny: 350, qx: 300, qy: 350, ax: 450, ay: 350 },
-  { id: 3, name: "16円切手", price: 16, minStock: 50, unit: 100, category: "切手", hasSheets: true, nx: 100, ny: 400, qx: 300, qy: 400, ax: 450, ay: 400 },
-  { id: 4, name: "22円切手", price: 22, minStock: 50, unit: 100, category: "切手", hasSheets: true, nx: 100, ny: 450, qx: 300, qy: 450, ax: 450, ay: 450 },
-  { id: 5, name: "85円切手", price: 85, minStock: 50, unit: 100, category: "切手", hasSheets: true, nx: 100, ny: 300, qx: 300, qy: 300, ax: 450, ay: 300 },
-  { id: 6, name: "110円切手", price: 110, minStock: 100, unit: 100, category: "切手", hasSheets: true, nx: 100, ny: 500, qx: 300, qy: 500, ax: 450, ay: 500 },
-  { id: 7, name: "120円切手", price: 120, minStock: 0, unit: 0, category: "切手", hasSheets: true, nx: 100, ny: 550, qx: 300, qy: 550, ax: 450, ay: 550 },
-  { id: 8, name: "はがき(インク)", price: 85, minStock: 10, unit: 10, category: "葉書", hasSheets: false, nx: 600, ny: 300, qx: 800, qy: 300, ax: 950, ay: 300 },
-  { id: 9, name: "年賀(インク)", price: 85, minStock: 10, unit: 50, category: "葉書", hasSheets: false, nx: 600, ny: 350, qx: 800, qy: 350, ax: 950, ay: 350 },
-  { id: 10, name: "年賀(ディズニー)", price: 85, minStock: 10, unit: 50, category: "葉書", hasSheets: false, nx: 600, ny: 400, qx: 800, qy: 400, ax: 950, ay: 400 },
-  { id: 11, name: "年賀(写真)", price: 95, minStock: 10, unit: 10, category: "葉書", hasSheets: false, nx: 600, ny: 450, qx: 800, qy: 450, ax: 950, ay: 450 },
-  { id: 12, name: "レターパックライト", price: 430, minStock: 20, unit: 20, category: "葉書", isLetterPack: true, nx: 600, ny: 500, qx: 800, qy: 500, ax: 950, ay: 500 },
-  { id: 13, name: "レターパックプラス", price: 600, minStock: 20, unit: 20, category: "葉書", isLetterPack: true, nx: 600, ny: 550, qx: 800, qy: 550, ax: 950, ay: 550 }
+  { id: 1, name: "収入印紙", price: 200, minStock: 100, unit: 100, category: "印紙", hasSheets: true, x: 200, y: 750 },
+  { id: 2, name: "10円切手", price: 10, minStock: 100, unit: 100, category: "切手", hasSheets: true, x: 200, y: 350 },
+  { id: 3, name: "16円切手", price: 16, minStock: 50, unit: 100, category: "切手", hasSheets: true, x: 200, y: 400 },
+  { id: 4, name: "22円切手", price: 22, minStock: 50, unit: 100, category: "切手", hasSheets: true, x: 200, y: 450 },
+  { id: 5, name: "85円切手", price: 85, minStock: 50, unit: 100, category: "切手", hasSheets: true, x: 200, y: 300 },
+  { id: 6, name: "110円切手", price: 110, minStock: 100, unit: 100, category: "切手", hasSheets: true, x: 200, y: 500 },
+  { id: 7, name: "120円切手", price: 120, minStock: 0, unit: 0, category: "切手", hasSheets: true, x: 200, y: 550 },
+  { id: 8, name: "はがき(インク)", price: 85, minStock: 10, unit: 10, category: "葉書", hasSheets: false, x: 700, y: 300 },
+  { id: 9, name: "年賀(インク)", price: 85, minStock: 10, unit: 50, category: "葉書", hasSheets: false, x: 700, y: 350 },
+  { id: 10, name: "年賀(ディズニー)", price: 85, minStock: 10, unit: 50, category: "葉書", hasSheets: false, x: 700, y: 400 },
+  { id: 11, name: "年賀(写真)", price: 95, minStock: 10, unit: 10, category: "葉書", hasSheets: false, x: 700, y: 450 },
+  { id: 12, name: "レターパックライト", price: 430, minStock: 20, unit: 20, category: "葉書", isLetterPack: true, x: 700, y: 500 },
+  { id: 13, name: "レターパックプラス", price: 600, minStock: 20, unit: 20, category: "葉書", isLetterPack: true, x: 700, y: 550 }
 ];
 
 let specialPrintData = [
@@ -701,7 +705,7 @@ function shareOrderSummary() {
   }
 }
 
-// --- 座標マネージャー（商品名・数量・金額を個別に微調整可能に拡張） ---
+// --- 座標マネージャー（元のシンプル1セット座標 ＋ テキスト編集対応） ---
 function renderCoordManager() {
   const container = document.getElementById('coord-rows-container');
   if (!container) return;
@@ -711,33 +715,12 @@ function renderCoordManager() {
     const row = document.createElement('div');
     row.className = 'coord-item-row';
     row.innerHTML = `
-      <b>📦 ${item.name}</b>
-      <div class="coord-sub-row">
-        <span>[商品名]</span>
-        <div class="coord-control-group">
-          X:<button class="btn-step-coord" onclick="adjustItemCoord(${item.id}, 'nx', -1)">←</button><input type="range" min="0" max="1200" value="${item.nx}" oninput="updateItemSubCoord(${item.id}, 'nx', this.value)" id="slider_nx_${item.id}"><button class="btn-step-coord" onclick="adjustItemCoord(${item.id}, 'nx', 1)">→</button><span id="coord_nx_${item.id}" style="width:28px; text-align:right;">${item.nx}</span>px
-        </div>
-        <div class="coord-control-group">
-          Y:<button class="btn-step-coord" onclick="adjustItemCoord(${item.id}, 'ny', -1)">←</button><input type="range" min="0" max="1700" value="${item.ny}" oninput="updateItemSubCoord(${item.id}, 'ny', this.value)" id="slider_ny_${item.id}"><button class="btn-step-coord" onclick="adjustItemCoord(${item.id}, 'ny', 1)">→</button><span id="coord_ny_${item.id}" style="width:28px; text-align:right;">${item.ny}</span>px
-        </div>
+      <b>${item.name}</b>
+      <div class="coord-control-group">
+        X:<button class="btn-step-coord" onclick="adjustCoord(${item.id}, 'x', -1)">←</button><input type="range" min="0" max="1200" value="${item.x}" oninput="updateItemCoord(${item.id}, 'x', this.value)" id="slider_x_${item.id}"><button class="btn-step-coord" onclick="adjustCoord(${item.id}, 'x', 1)">→</button><span id="coord_x_${item.id}" style="width:32px; text-align:right;">${item.x}</span>px
       </div>
-      <div class="coord-sub-row">
-        <span>[数量]</span>
-        <div class="coord-control-group">
-          X:<button class="btn-step-coord" onclick="adjustItemCoord(${item.id}, 'qx', -1)">←</button><input type="range" min="0" max="1200" value="${item.qx}" oninput="updateItemSubCoord(${item.id}, 'qx', this.value)" id="slider_qx_${item.id}"><button class="btn-step-coord" onclick="adjustItemCoord(${item.id}, 'qx', 1)">→</button><span id="coord_qx_${item.id}" style="width:28px; text-align:right;">${item.qx}</span>px
-        </div>
-        <div class="coord-control-group">
-          Y:<button class="btn-step-coord" onclick="adjustItemCoord(${item.id}, 'qy', -1)">←</button><input type="range" min="0" max="1700" value="${item.qy}" oninput="updateItemSubCoord(${item.id}, 'qy', this.value)" id="slider_qy_${item.id}"><button class="btn-step-coord" onclick="adjustItemCoord(${item.id}, 'qy', 1)">→</button><span id="coord_qy_${item.id}" style="width:28px; text-align:right;">${item.qy}</span>px
-        </div>
-      </div>
-      <div class="coord-sub-row">
-        <span>[金額]</span>
-        <div class="coord-control-group">
-          X:<button class="btn-step-coord" onclick="adjustItemCoord(${item.id}, 'ax', -1)">←</button><input type="range" min="0" max="1200" value="${item.ax}" oninput="updateItemSubCoord(${item.id}, 'ax', this.value)" id="slider_ax_${item.id}"><button class="btn-step-coord" onclick="adjustItemCoord(${item.id}, 'ax', 1)">→</button><span id="coord_ax_${item.id}" style="width:28px; text-align:right;">${item.ax}</span>px
-        </div>
-        <div class="coord-control-group">
-          Y:<button class="btn-step-coord" onclick="adjustItemCoord(${item.id}, 'ay', -1)">←</button><input type="range" min="0" max="1700" value="${item.ay}" oninput="updateItemSubCoord(${item.id}, 'ay', this.value)" id="slider_ay_${item.id}"><button class="btn-step-coord" onclick="adjustItemCoord(${item.id}, 'ay', 1)">→</button><span id="coord_ay_${item.id}" style="width:28px; text-align:right;">${item.ay}</span>px
-        </div>
+      <div class="coord-control-group">
+        Y:<button class="btn-step-coord" onclick="adjustCoord(${item.id}, 'y', -1)">←</button><input type="range" min="0" max="1700" value="${item.y}" oninput="updateItemCoord(${item.id}, 'y', this.value)" id="slider_y_${item.id}"><button class="btn-step-coord" onclick="adjustCoord(${item.id}, 'y', 1)">→</button><span id="coord_y_${item.id}" style="width:32px; text-align:right;">${item.y}</span>px
       </div>
     `;
     container.appendChild(row);
@@ -753,39 +736,25 @@ function renderCoordManager() {
     }
     row.innerHTML = `
       <b>${sp.name}</b> ${editHtml}
-      <div class="coord-sub-row" style="margin-top:4px;">
-        <span>[位置]</span>
-        <div class="coord-control-group">
-          X:<button class="btn-step-coord" onclick="adjustSpecialCoord('${sp.key}', 'x', -1)">←</button><input type="range" min="0" max="1200" value="${sp.x}" oninput="updateSpecialCoord('${sp.key}', 'x', this.value)" id="slider_x_${sp.key}"><button class="btn-step-coord" onclick="adjustSpecialCoord('${sp.key}', 'x', 1)">→</button><span id="coord_x_${sp.key}" style="width:28px; text-align:right;">${sp.x}</span>px
-        </div>
-        <div class="coord-control-group">
-          Y:<button class="btn-step-coord" onclick="adjustSpecialCoord('${sp.key}', 'y', -1)">←</button><input type="range" min="0" max="1700" value="${sp.y}" oninput="updateSpecialCoord('${sp.key}', 'y', this.value)" id="slider_y_${sp.key}"><button class="btn-step-coord" onclick="adjustSpecialCoord('${sp.key}', 'y', 1)">→</button><span id="coord_y_${sp.key}" style="width:28px; text-align:right;">${sp.y}</span>px
-        </div>
+      <div class="coord-control-group">
+        X:<button class="btn-step-coord" onclick="adjustSpecialCoord('${sp.key}', 'x', -1)">←</button><input type="range" min="0" max="1200" value="${sp.x}" oninput="updateSpecialCoord('${sp.key}', 'x', this.value)" id="slider_x_${sp.key}"><button class="btn-step-coord" onclick="adjustSpecialCoord('${sp.key}', 'x', 1)">→</button><span id="coord_x_${sp.key}" style="width:32px; text-align:right;">${sp.x}</span>px
+      </div>
+      <div class="coord-control-group">
+        Y:<button class="btn-step-coord" onclick="adjustSpecialCoord('${sp.key}', 'y', -1)">←</button><input type="range" min="0" max="1700" value="${sp.y}" oninput="updateSpecialCoord('${sp.key}', 'y', this.value)" id="slider_y_${sp.key}"><button class="btn-step-coord" onclick="adjustSpecialCoord('${sp.key}', 'y', 1)">→</button><span id="coord_y_${sp.key}" style="width:32px; text-align:right;">${sp.y}</span>px
       </div>
     `;
     container.appendChild(row);
   });
 }
 
-function adjustItemCoord(id, prop, delta) {
+function adjustCoord(id, axis, delta) {
   const item = masterData.find(i => i.id === id);
   if (item) {
-    item[prop] = Math.max(0, item[prop] + delta);
-    const slider = document.getElementById(`slider_${prop}_${id}`);
-    if (slider) slider.value = item[prop];
-    const span = document.getElementById(`coord_${prop}_${id}`);
-    if (span) span.innerText = item[prop];
-    updateCanvas();
-    triggerAutoSave();
-  }
-}
-
-function updateItemSubCoord(id, prop, val) {
-  const item = masterData.find(i => i.id === id);
-  if (item) {
-    item[prop] = parseInt(val, 10);
-    const span = document.getElementById(`coord_${prop}_${id}`);
-    if (span) span.innerText = item[prop];
+    item[axis] = Math.max(0, item[axis] + delta);
+    const slider = document.getElementById(`slider_${axis}_${id}`);
+    if (slider) slider.value = item[axis];
+    const span = document.getElementById(`coord_${axis}_${id}`);
+    if (span) span.innerText = item[axis];
     updateCanvas();
     triggerAutoSave();
   }
@@ -799,6 +768,17 @@ function adjustSpecialCoord(key, axis, delta) {
     if (slider) slider.value = sp[axis];
     const span = document.getElementById(`coord_${axis}_${key}`);
     if (span) span.innerText = sp[axis];
+    updateCanvas();
+    triggerAutoSave();
+  }
+}
+
+function updateItemCoord(id, axis, val) {
+  const item = masterData.find(i => i.id === id);
+  if (item) {
+    item[axis] = parseInt(val, 10);
+    const span = document.getElementById(`coord_${axis}_${id}`);
+    if (span) span.innerText = item[axis];
     updateCanvas();
     triggerAutoSave();
   }
@@ -926,7 +906,7 @@ function saveProductMaster() {
   } else {
     const newId = masterData.length > 0 ? Math.max(...masterData.map(p => p.id)) + 1 : 1;
     masterData.push({
-      id: newId, name, price, minStock: isNaN(minStock) ? 0 : minStock, unit: isNaN(unit) ? 10 : unit, category, hasSheets: true, nx: 100, ny: 600, qx: 300, qy: 600, ax: 450, ay: 600
+      id: newId, name, price, minStock: isNaN(minStock) ? 0 : minStock, unit: isNaN(unit) ? 10 : unit, category, hasSheets: true, x: 200, y: 600
     });
     Object.keys(storeDataMap).forEach(sId => {
       storeDataMap[sId].inventory[newId] = { sheet100: 0 };
@@ -1007,7 +987,7 @@ function deleteCustomText(key) {
   }
 }
 
-// プレビュー描画（商品名・数量・金額の独立座標反映）
+// プレビュー描画（商品名/数量/金額をマスタ等からテキスト編集でスペース調整可能に）
 function updateCanvas() {
   const canvas = document.getElementById('formCanvas');
   if (!canvas) return;
@@ -1056,7 +1036,7 @@ function updateCanvas() {
   initStoreData(currentStoreId);
   const sData = storeDataMap[currentStoreId];
 
-  // 1. 各商品の赤字描画（商品名・数量・金額を個別の座標で印字）
+  // 1. 各商品の赤字描画（商品名 / 数量 / 金額を一つの行位置 y と各座標 x で描画）
   masterData.forEach(item => {
     if (sData.hiddenItems[item.id]) return;
     const inv = sData.inventory[item.id];
@@ -1072,10 +1052,9 @@ function updateCanvas() {
       const qty = item.unit;
       const amt = qty * item.price;
       
-      // それぞれ独立した座標（nx/ny, qx/qy, ax/ay）で描画
-      ctx.fillText(item.name, item.nx, item.ny);
-      ctx.fillText(qty, item.qx, item.qy);
-      ctx.fillText(amt, item.ax, item.ay);
+      // 商品名、数量、金額をまとめて描画（スペース調整はテキスト内容にスペースを挟むかマスタ画面等で調整可能）
+      const displayText = `${item.name}    ${qty}    ${amt.toLocaleString()}`;
+      ctx.fillText(displayText, item.x, item.y);
     }
   });
 
