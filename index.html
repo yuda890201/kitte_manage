@@ -1078,9 +1078,9 @@ function updateCanvas() {
 // 2. 特殊項目・サマリー等の描画
   const vals = getSummaryValues();
   const summaryMap = {
-    sum_stamps: `${vals.stampQty}枚 　　　　 ${vals.stampAmt.toLocaleString()}`,
-    sum_postcards: `${vals.postQty}枚 　　　　 ${vals.postAmt.toLocaleString()}`,
-    sum_revenue: `${vals.revQty}　　 ￥${vals.revAmt.toLocaleString()}`,
+    sum_stamps: `${vals.stampQty} 　　 ${vals.stampAmt.toLocaleString()}`,
+    sum_postcards: `${vals.postQty} 　　 ${vals.postAmt.toLocaleString()}`,
+    sum_revenue: `${vals.revQty}　　 ${vals.revAmt.toLocaleString()}`,
     sum_revenue_amt: `￥${vals.revAmt.toLocaleString()}`, // ← ここで追加分を定義
     sum_postal_total: `￥${vals.postalTotal.toLocaleString()}`,
     sum_total_cash: `￥${vals.totalCash.toLocaleString()}`,
