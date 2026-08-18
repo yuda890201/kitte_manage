@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>切手・印紙 請求書 座標ビジュアル調整ツール</title>
+  <title>切手・印紙 請求書作成 ＆ 全アイテム座標調整ツール</title>
   <style>
     :root {
       --primary: #1976d2;
@@ -26,17 +26,23 @@
     
     .container { max-width: 900px; margin: 0 auto; padding: 12px; }
     
+    /* モード切り替えタブ */
+    .mode-tabs { display: flex; background: #ddd; border-radius: 8px; padding: 4px; margin-bottom: 14px; gap: 4px; }
+    .mode-tab { flex: 1; background: none; border: none; padding: 10px; font-weight: bold; font-size: 0.9rem; border-radius: 6px; cursor: pointer; text-align: center; color: #555; }
+    .mode-tab.active { background: white; color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
     .preview-card { background: var(--card-bg); border-radius: 10px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid var(--primary); }
     .preview-title { font-size: 0.9rem; font-weight: bold; color: var(--primary); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
-    .canvas-container { width: 100%; overflow: auto; max-height: 500px; background: #eee; border-radius: 6px; text-align: center; padding: 8px; border: 1px solid #ccc; }
+    .canvas-container { width: 100%; overflow: auto; max-height: 450px; background: #eee; border-radius: 6px; text-align: center; padding: 8px; border: 1px solid #ccc; }
     canvas { background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
-    /* 座標調整パネル */
-    .coord-panel { background: #e3f2fd; border: 1px solid #bbdefb; padding: 12px; border-radius: 8px; margin-top: 12px; }
-    .coord-panel h4 { font-size: 0.9rem; color: #0d47a1; margin-bottom: 8px; }
-    .coord-row { display: flex; justify-content: space-between; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; margin-bottom: 6px; border: 1px solid #d0d7de; font-size: 0.85rem; }
-    .coord-row input[type="range"] { width: 120px; }
-    .coord-row span { font-weight: bold; color: #333; min-width: 50px; text-align: right; }
+    /* 座標調整リストパネル */
+    .coord-manager { background: white; border-radius: 10px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid #ff9800; }
+    .coord-item-row { background: #fafafa; border: 1px solid var(--border); border-radius: 6px; padding: 10px; margin-bottom: 8px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; font-size: 0.85rem; }
+    .coord-item-row b { color: #333; flex: 1; min-width: 120px; }
+    .coord-control-group { display: flex; align-items: center; gap: 8px; }
+    .coord-control-group input[type="range"] { width: 100px; }
+    .coord-control-group span { font-weight: bold; width: 40px; text-align: right; }
 
     .summary-card { background: var(--card-bg); border-radius: 10px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid var(--accent); }
     .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
@@ -68,88 +74,94 @@
     .stepper { display: flex; align-items: center; justify-content: center; gap: 4px; margin-top: 4px; }
     .btn-step { width: 28px; height: 28px; border: 1px solid #ccc; background: #fff; border-radius: 4px; font-weight: bold; cursor: pointer; }
     .stepper input { width: 44px; height: 28px; text-align: center; font-size: 0.95rem; border: 1px solid #ccc; border-radius: 4px; }
+
+    .section-view { display: none; }
+    .section-view.active { display: block; }
   </style>
 </head>
 <body>
 
 <header>
-  <h1>切手・印紙 座標調整ツール</h1>
+  <h1>切手・印紙 請求書自動作成ツール</h1>
   <button class="btn-header" onclick="resetAllInputs()">クリア</button>
 </header>
 
 <div class="container">
 
-  <div class="preview-card">
-    <div class="preview-title">
-      <span>📐 超高精度グリッド＆座標調整</span>
-      <label style="font-size:0.85rem; font-weight:normal; cursor:pointer;">
-        <input type="checkbox" id="gridToggle" checked onchange="updateCanvas()"> グリッド表示
-      </label>
-    </div>
+  <div class="mode-tabs">
+    <button class="mode-tab active" onclick="switchMode('input', this)">📋 在庫入力・プレビュー</button>
+    <button class="mode-tab" onclick="switchMode('coords', this)">⚙️ 全アイテム座標調整</button>
+  </div>
+
+  <div id="view-input" class="section-view active">
     
-    <div class="canvas-container">
-      <canvas id="formCanvas"></canvas>
-    </div>
-
-    <div class="coord-panel">
-      <h4>📍 描画位置（座標）のリアルタイム調整</h4>
+    <div class="preview-card">
+      <div class="preview-title">
+        <span>👁️ 請求書 リアルタイムプレビュー</span>
+        <label style="font-size:0.85rem; font-weight:normal; cursor:pointer;">
+          <input type="checkbox" id="gridToggle" checked onchange="updateCanvas()"> グリッド線
+        </label>
+      </div>
       
-      <div class="coord-row">
-        <span>85円切手</span>
-        <div>X: <input type="range" min="0" max="1000" value="200" id="pos_stamp85_x" oninput="updateCanvas()"> <span id="val_stamp85_x">200</span>px</div>
-        <div>Y: <input type="range" min="0" max="1500" value="300" id="pos_stamp85_y" oninput="updateCanvas()"> <span id="val_stamp85_y">300</span>px</div>
+      <div class="canvas-container">
+        <canvas id="formCanvas"></canvas>
       </div>
 
-      <div class="coord-row">
-        <span>収入印紙</span>
-        <div>X: <input type="range" min="0" max="1000" value="200" id="pos_rev_x" oninput="updateCanvas()"> <span id="val_rev_x">200</span>px</div>
-        <div>Y: <input type="range" min="0" max="1500" value="750" id="pos_rev_y" oninput="updateCanvas()"> <span id="val_rev_y">750</span>px</div>
+      <button class="btn-download" onclick="downloadFormImage()">📥 完成した請求書画像をダウンロード</button>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-title" style="color:var(--accent);">📢 発注・買受サマリー</div>
+      <div class="summary-grid">
+        <div class="summary-item"><div class="label">郵便切手類 合計</div><div class="val" id="sum-stamps">0 円</div></div>
+        <div class="summary-item"><div class="label">葉書・レターパック 合計</div><div class="val" id="sum-postcards">0 円</div></div>
+        <div class="summary-item"><div class="label">収入印紙 合計</div><div class="val" id="sum-revenue">0 円</div></div>
+        <div class="summary-item"><div class="label">切手等 計（印紙除く）</div><div class="val" id="sum-postal-total">0 円</div></div>
+      </div>
+      <div class="total-box">
+        <div class="label">レジ出金額（商品前渡金 総額）</div>
+        <div class="val" id="sum-total-cash">0 円</div>
       </div>
     </div>
 
-    <button class="btn-download" onclick="downloadFormImage()">📥 グリッドを消して画像をダウンロード</button>
-  </div>
-
-  <div class="summary-card">
-    <div class="summary-title" style="color:var(--accent);">📢 発注・買受サマリー</div>
-    <div class="summary-grid">
-      <div class="summary-item"><div class="label">郵便切手類 合計</div><div class="val" id="sum-stamps">0 円</div></div>
-      <div class="summary-item"><div class="label">葉書・レターパック 合計</div><div class="val" id="sum-postcards">0 円</div></div>
-      <div class="summary-item"><div class="label">収入印紙 合計</div><div class="val" id="sum-revenue">0 円</div></div>
-      <div class="summary-item"><div class="label">切手等 計（印紙除く）</div><div class="val" id="sum-postal-total">0 円</div></div>
+    <div class="tabs">
+      <button class="tab active" onclick="filterCategory('all', this)">すべて</button>
+      <button class="tab" onclick="filterCategory('印紙', this)">収入印紙</button>
+      <button class="tab" onclick="filterCategory('切手', this)">切手類</button>
+      <button class="tab" onclick="filterCategory('葉書', this)">葉書・レターパック</button>
     </div>
-    <div class="total-box">
-      <div class="label">レジ出金額（商品前渡金 総額）</div>
-      <div class="val" id="sum-total-cash">0 円</div>
+
+    <div id="items-container"></div>
+  </div>
+
+  <div id="view-coords" class="section-view">
+    <div class="coord-manager">
+      <h3 style="font-size:1rem; color:#e65100; margin-bottom:6px;">📍 全アイテム 描画座標マネージャー</h3>
+      <p style="font-size:0.8rem; color:#666; margin-bottom:12px;">各アイテムの請求書内での印刷位置（X・Y座標）をいつでも個別に変更できます。変更はリアルタイムにプレビューに反映されます。</p>
+      
+      <div id="coord-rows-container">
+        </div>
     </div>
   </div>
-
-  <div class="tabs">
-    <button class="tab active" onclick="filterCategory('all', this)">すべて</button>
-    <button class="tab" onclick="filterCategory('印紙', this)">収入印紙</button>
-    <button class="tab" onclick="filterCategory('切手', this)">切手類</button>
-    <button class="tab" onclick="filterCategory('葉書', this)">葉書・レターパック</button>
-  </div>
-
-  <div id="items-container"></div>
 
 </div>
 
 <script>
+// 全アイテムデータ（デフォルト座標 x, y を内包）
 const masterData = [
-  { id: 1, name: "収入印紙", price: 200, minStock: 100, unit: 100, category: "印紙", hasSheets: true },
-  { id: 2, name: "10円切手", price: 10, minStock: 100, unit: 100, category: "切手", hasSheets: true },
-  { id: 3, name: "16円切手", price: 16, minStock: 50, unit: 100, category: "切手", hasSheets: true },
-  { id: 4, name: "22円切手", price: 22, minStock: 50, unit: 100, category: "切手", hasSheets: true },
-  { id: 5, name: "85円切手", price: 85, minStock: 50, unit: 100, category: "切手", hasSheets: true },
-  { id: 6, name: "110円切手", price: 110, minStock: 100, unit: 100, category: "切手", hasSheets: true },
-  { id: 7, name: "120円切手", price: 120, minStock: 0, unit: 0, category: "切手", hasSheets: true },
-  { id: 8, name: "はがき(インク)", price: 85, minStock: 10, unit: 10, category: "葉書", hasSheets: false },
-  { id: 9, name: "年賀(インク)", price: 85, minStock: 10, unit: 50, category: "葉書", hasSheets: false },
-  { id: 10, name: "年賀(ディズニー)", price: 85, minStock: 10, unit: 50, category: "葉書", hasSheets: false },
-  { id: 11, name: "年賀(写真)", price: 95, minStock: 10, unit: 10, category: "葉書", hasSheets: false },
-  { id: 12, name: "レターパックライト", price: 430, minStock: 20, unit: 20, category: "葉書", hasSheets: false },
-  { id: 13, name: "レターパックプラス", price: 600, minStock: 20, unit: 20, category: "葉書", hasSheets: false }
+  { id: 1, name: "収入印紙", price: 200, minStock: 100, unit: 100, category: "印紙", hasSheets: true, x: 200, y: 750 },
+  { id: 2, name: "10円切手", price: 10, minStock: 100, unit: 100, category: "切手", hasSheets: true, x: 200, y: 350 },
+  { id: 3, name: "16円切手", price: 16, minStock: 50, unit: 100, category: "切手", hasSheets: true, x: 200, y: 400 },
+  { id: 4, name: "22円切手", price: 22, minStock: 50, unit: 100, category: "切手", hasSheets: true, x: 200, y: 450 },
+  { id: 5, name: "85円切手", price: 85, minStock: 50, unit: 100, category: "切手", hasSheets: true, x: 200, y: 300 },
+  { id: 6, name: "110円切手", price: 110, minStock: 100, unit: 100, category: "切手", hasSheets: true, x: 200, y: 500 },
+  { id: 7, name: "120円切手", price: 120, minStock: 0, unit: 0, category: "切手", hasSheets: true, x: 200, y: 550 },
+  { id: 8, name: "はがき(インク)", price: 85, minStock: 10, unit: 10, category: "葉書", hasSheets: false, x: 700, y: 300 },
+  { id: 9, name: "年賀(インク)", price: 85, minStock: 10, unit: 50, category: "葉書", hasSheets: false, x: 700, y: 350 },
+  { id: 10, name: "年賀(ディズニー)", price: 85, minStock: 10, unit: 50, category: "葉書", hasSheets: false, x: 700, y: 400 },
+  { id: 11, name: "年賀(写真)", price: 95, minStock: 10, unit: 10, category: "葉書", hasSheets: false, x: 700, y: 450 },
+  { id: 12, name: "レターパックライト", price: 430, minStock: 20, unit: 20, category: "葉書", hasSheets: false, x: 700, y: 500 },
+  { id: 13, name: "レターパックプラス", price: 600, minStock: 20, unit: 20, category: "葉書", hasSheets: false, x: 700, y: 550 }
 ];
 
 let inputState = {};
@@ -167,7 +179,49 @@ function initData() {
     inputState[item.id] = { sheet100: 0 };
     for (let i = 1; i <= 10; i++) inputState[item.id]['s' + i] = 0;
   });
-  inputState[5].sheet100 = 0; // 85円切手不足確認用
+  // テスト用に85円切手と収入印紙を不足状態にしておき確認しやすくする
+  inputState[5].sheet100 = 0;
+  inputState[1].sheet100 = 0;
+}
+
+function switchMode(mode, btn) {
+  document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section-view').forEach(v => v.classList.remove('active'));
+  
+  if (btn) btn.classList.add('active');
+  document.getElementById('view-' + mode).classList.add('active');
+  updateCanvas();
+}
+
+function renderCoordManager() {
+  const container = document.getElementById('coord-rows-container');
+  container.innerHTML = '';
+
+  masterData.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'coord-item-row';
+    row.innerHTML = `
+      <b>${item.name}</b>
+      <div class="coord-control-group">
+        X: <input type="range" min="0" max="1200" value="${item.x}" oninput="updateItemCoord(${item.id}, 'x', this.value)">
+        <span id="coord_x_${item.id}">${item.x}</span>px
+      </div>
+      <div class="coord-control-group">
+        Y: <input type="range" min="0" max="1700" value="${item.y}" oninput="updateItemCoord(${item.id}, 'y', this.value)">
+        <span id="coord_y_${item.id}">${item.y}</span>px
+      </div>
+    `;
+    container.appendChild(row);
+  });
+}
+
+function updateItemCoord(id, axis, val) {
+  const item = masterData.find(i => i.id === id);
+  if (item) {
+    item[axis] = parseInt(val, 10);
+    document.getElementById(`coord_${axis}_${id}`).innerText = val;
+    updateCanvas();
+  }
 }
 
 function renderItems(filterCat = 'all') {
@@ -282,67 +336,33 @@ function updateCanvas() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  // --- 超高精度グリッド線の描画 (10px刻み＆50px刻み) ---
+  // --- 高精度グリッド線の描画 ---
   if (showGrid) {
     ctx.save();
     ctx.lineWidth = 1;
-    
-    // 10pxの極細グリッド
     for (let x = 0; x <= canvas.width; x += 10) {
       ctx.strokeStyle = (x % 50 === 0) ? '#999999' : '#e0e0e0';
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, canvas.height);
-      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
     }
     for (let y = 0; y <= canvas.height; y += 10) {
       ctx.strokeStyle = (y % 50 === 0) ? '#999999' : '#e0e0e0';
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(canvas.width, y);
-      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
     }
-
-    // 50pxごとの太線と座標数値
     ctx.font = '10px sans-serif';
     for (let x = 0; x <= canvas.width; x += 50) {
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = (x % 100 === 0) ? 1.5 : 0.8;
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, canvas.height);
-      ctx.stroke();
-
-      ctx.fillStyle = '#000000';
-      ctx.fillText(x, x + 2, 12);
+      ctx.strokeStyle = '#000000'; ctx.lineWidth = (x % 100 === 0) ? 1.5 : 0.8;
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+      ctx.fillStyle = '#000000'; ctx.fillText(x, x + 2, 12);
     }
-
     for (let y = 0; y <= canvas.height; y += 50) {
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = (y % 100 === 0) ? 1.5 : 0.8;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(canvas.width, y);
-      ctx.stroke();
-
-      ctx.fillStyle = '#000000';
-      ctx.fillText(y, 2, y - 2);
+      ctx.strokeStyle = '#000000'; ctx.lineWidth = (y % 100 === 0) ? 1.5 : 0.8;
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+      ctx.fillStyle = '#000000'; ctx.fillText(y, 2, y - 2);
     }
     ctx.restore();
   }
 
-  // --- スライダーから現在の座標値を取得して反映 ---
-  const stamp85_x = parseInt(document.getElementById('pos_stamp85_x').value);
-  const stamp85_y = parseInt(document.getElementById('pos_stamp85_y').value);
-  document.getElementById('val_stamp85_x').innerText = stamp85_x;
-  document.getElementById('val_stamp85_y').innerText = stamp85_y;
-
-  const rev_x = parseInt(document.getElementById('pos_rev_x').value);
-  const rev_y = parseInt(document.getElementById('pos_rev_y').value);
-  document.getElementById('val_rev_x').innerText = rev_x;
-  document.getElementById('val_rev_y').innerText = rev_y;
-
-  // --- 赤字データの描画 ---
+  // --- 全アイテムの赤字テキストを描画 ---
   ctx.fillStyle = '#d32f2f';
   ctx.font = 'bold 22px sans-serif';
 
@@ -350,17 +370,15 @@ function updateCanvas() {
     let totalStock = (inputState[item.id].sheet100 || 0) * 100;
     for (let i = 1; i <= 10; i++) totalStock += (inputState[item.id]['s' + i] || 0) * i;
 
+    // 最低在庫割れしている、あるいは座標調整用にあえて全表示したい場合はここで条件制御可能
     if (item.minStock > 0 && totalStock < item.minStock) {
       const qty = item.unit;
       const amt = qty * item.price;
 
-      if (item.name === "85円切手") {
-        ctx.fillText(qty, stamp85_x, stamp85_y);
-        ctx.fillText(amt, stamp85_x + 120, stamp85_y);
-      } else if (item.name === "収入印紙") {
-        ctx.fillText(qty, rev_x, rev_y);
-        ctx.fillText(amt, rev_x + 120, rev_y);
-      }
+      // 各アイテムに設定された個別X, Y座標に数量を描画
+      ctx.fillText(qty, item.x, item.y);
+      // 金額はその右隣（+110px等）に描画
+      ctx.fillText(amt, item.x + 110, item.y);
     }
   });
 }
@@ -381,8 +399,10 @@ function downloadFormImage() {
   updateCanvas();
 }
 
+// 初期化実行
 initData();
 preloadBackground();
+renderCoordManager();
 renderItems('all');
 </script>
 
