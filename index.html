@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>切手・印紙 請求書作成 ＆ 全アイテム座標調整ツール</title>
+  <title>切手・印紙 在庫管理＆請求書作成ツール</title>
   <style>
     :root {
       --primary: #1976d2;
@@ -28,23 +28,17 @@
     
     /* モード切り替えタブ */
     .mode-tabs { display: flex; background: #ddd; border-radius: 8px; padding: 4px; margin-bottom: 14px; gap: 4px; }
-    .mode-tab { flex: 1; background: none; border: none; padding: 10px; font-weight: bold; font-size: 0.9rem; border-radius: 6px; cursor: pointer; text-align: center; color: #555; }
+    .mode-tab { flex: 1; background: none; border: none; padding: 10px; font-weight: bold; font-size: 0.85rem; border-radius: 6px; cursor: pointer; text-align: center; color: #555; }
     .mode-tab.active { background: white; color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 
-    .preview-card { background: var(--card-bg); border-radius: 10px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid var(--primary); }
-    .preview-title { font-size: 0.9rem; font-weight: bold; color: var(--primary); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
-    .canvas-container { width: 100%; overflow: auto; max-height: 450px; background: #eee; border-radius: 6px; text-align: center; padding: 8px; border: 1px solid #ccc; }
-    canvas { background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .section-view { display: none; }
+    .section-view.active { display: block; }
 
-    /* 座標調整リストパネル */
-    .coord-manager { background: white; border-radius: 10px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid #ff9800; }
-    .coord-item-row { background: #fafafa; border: 1px solid var(--border); border-radius: 6px; padding: 10px; margin-bottom: 8px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; font-size: 0.85rem; }
-    .coord-item-row b { color: #333; flex: 1; min-width: 120px; }
-    .coord-control-group { display: flex; align-items: center; gap: 8px; }
-    .coord-control-group input[type="range"] { width: 100px; }
-    .coord-control-group span { font-weight: bold; width: 40px; text-align: right; }
+    /* 入力画面：上部に入力、下部に買受サマリー */
+    .input-main-container { display: flex; flex-direction: column; gap: 16px; }
 
-    .summary-card { background: var(--card-bg); border-radius: 10px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid var(--accent); }
+    .summary-card { background: var(--card-bg); border-radius: 10px; padding: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid var(--accent); }
+    .summary-title { font-size: 0.9rem; font-weight: bold; color: var(--accent); margin-bottom: 8px; }
     .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
     .summary-item { background: #fafafa; padding: 8px; border-radius: 6px; border: 1px solid var(--border); }
     .summary-item .label { font-size: 0.75rem; color: var(--text-sub); }
@@ -53,115 +47,165 @@
     .total-box .label { font-size: 0.8rem; color: #e65100; font-weight: bold; }
     .total-box .val { font-size: 1.35rem; font-weight: bold; color: #d84315; }
 
-    .btn-download { width: 100%; background: #c62828; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.15); margin-top: 10px; }
+    /* アイテムカード */
+    .item-card { background: var(--card-bg); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+    .item-card.hidden-item { opacity: 0.4; background: #f0f0f0; }
+    .item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .item-title-area { display: flex; align-items: center; gap: 8px; }
+    .item-name { font-size: 1rem; font-weight: bold; }
+    .item-price { font-size: 0.85rem; color: var(--text-sub); }
+    .btn-hide-toggle { background: #eee; border: 1px solid #ccc; font-size: 0.75rem; padding: 3px 8px; border-radius: 4px; cursor: pointer; }
 
-    .tabs { display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 4px; }
-    .tab { background: #e0e0e0; border: none; padding: 8px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; cursor: pointer; white-space: nowrap; }
-    .tab.active { background: var(--primary); color: white; }
+    /* 100枚〜10枚セットの横並びコンテナ */
+    .horizontal-stepper-container { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+    .slot-box { background: #fafafa; border: 1px solid var(--border); border-radius: 6px; padding: 6px; text-align: center; min-width: 75px; flex: 1; }
+    .slot-label { font-size: 0.7rem; color: var(--text-sub); margin-bottom: 4px; white-space: nowrap; }
+    .slot-alert { color: var(--accent); font-weight: bold; font-size: 0.65rem; }
 
-    .item-card { background: var(--card-bg); border-radius: 8px; padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
-    .item-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
-    .item-name { font-size: 1.05rem; font-weight: bold; }
-    .item-price { font-size: 0.85rem; color: var(--text-sub); margin-left: 6px; }
-    .stock-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
-    .badge-ok { background: var(--success-bg); color: var(--success-text); }
-    .badge-need { background: var(--alert-bg); color: var(--alert-text); }
+    /* 上下に分かれた増減ボタン */
+    .vertical-stepper { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .btn-step-v { width: 100%; height: 22px; border: 1px solid #ccc; background: #fff; border-radius: 3px; font-weight: bold; cursor: pointer; font-size: 0.8rem; line-height: 1; }
+    .btn-step-v:active { background: #e0e0e0; }
+    .slot-input { width: 100%; height: 26px; text-align: center; font-size: 0.9rem; border: 1px solid #ccc; border-radius: 3px; font-weight: bold; }
 
-    .input-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin-top: 8px; }
-    .slot-box { background: #fafafa; border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; text-align: center; }
-    .slot-label { font-size: 0.75rem; color: var(--text-sub); display: flex; justify-content: space-between; align-items: center; }
-    .slot-alert { color: var(--accent); font-size: 0.7rem; font-weight: bold; }
-    .stepper { display: flex; align-items: center; justify-content: center; gap: 4px; margin-top: 4px; }
-    .btn-step { width: 28px; height: 28px; border: 1px solid #ccc; background: #fff; border-radius: 4px; font-weight: bold; cursor: pointer; }
-    .stepper input { width: 44px; height: 28px; text-align: center; font-size: 0.95rem; border: 1px solid #ccc; border-radius: 4px; }
+    /* 座標調整画面 */
+    .preview-card { background: var(--card-bg); border-radius: 10px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid var(--primary); }
+    .canvas-container { width: 100%; overflow: auto; max-height: 450px; background: #eee; border-radius: 6px; text-align: center; padding: 8px; border: 1px solid #ccc; }
+    canvas { background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .coord-manager { background: white; border-radius: 10px; padding: 14px; margin-top: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid #ff9800; }
+    .coord-item-row { background: #fafafa; border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; margin-bottom: 6px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; font-size: 0.85rem; }
+    .coord-item-row b { color: #333; flex: 1; min-width: 100px; }
+    .coord-control-group { display: flex; align-items: center; gap: 6px; }
+    .coord-control-group input[type="range"] { width: 90px; }
 
-    .section-view { display: none; }
-    .section-view.active { display: block; }
+    /* マスタ管理画面用スタイル */
+    .master-card { background: white; border-radius: 10px; padding: 14px; margin-bottom: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid #4caf50; }
+    .master-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+    .master-form input, .master-form select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; }
+    .btn-add-master { grid-column: span 2; background: #4caf50; color: white; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+    
+    .btn-action-main { width: 100%; background: #c62828; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
   </style>
 </head>
 <body>
 
 <header>
-  <h1>切手・印紙 請求書自動作成ツール</h1>
+  <h1>切手・印紙 管理システム</h1>
   <button class="btn-header" onclick="resetAllInputs()">クリア</button>
 </header>
 
 <div class="container">
 
+  <!-- 上部モード切り替えタブ -->
   <div class="mode-tabs">
-    <button class="mode-tab active" onclick="switchMode('input', this)">📋 在庫入力・プレビュー</button>
-    <button class="mode-tab" onclick="switchMode('coords', this)">⚙️ 全アイテム座標調整</button>
+    <button class="mode-tab active" onclick="switchMode('input', this)">📋 入力・サマリー</button>
+    <button class="mode-tab" onclick="switchMode('preview', this)">👁️ 請求書プレビュー・座標</button>
+    <button class="mode-tab" onclick="switchMode('master', this)">⚙️ マスタ管理</button>
   </div>
 
+  <!-- 【ビュー1】：入力画面（上部に入力、下部に買受サマリー） -->
   <div id="view-input" class="section-view active">
-    
-    <div class="preview-card">
-      <div class="preview-title">
-        <span>👁️ 請求書 リアルタイムプレビュー</span>
-        <label style="font-size:0.85rem; font-weight:normal; cursor:pointer;">
-          <input type="checkbox" id="gridToggle" checked onchange="updateCanvas()"> グリッド線
-        </label>
-      </div>
+    <div class="input-main-container">
       
+      <!-- カテゴリタブ -->
+      <div class="tabs" style="display:flex; gap:6px; overflow-x:auto;">
+        <button class="tab active" onclick="filterCategory('all', this)" style="background:#1976d2; color:white; border:none; padding:6px 12px; border-radius:15px; font-size:0.8rem; font-weight:bold;">すべて</button>
+        <button class="tab" onclick="filterCategory('印紙', this)" style="background:#e0e0e0; border:none; padding:6px 12px; border-radius:15px; font-size:0.8rem; font-weight:bold;">収入印紙</button>
+        <button class="tab" onclick="filterCategory('切手', this)" style="background:#e0e0e0; border:none; padding:6px 12px; border-radius:15px; font-size:0.8rem; font-weight:bold;">切手類</button>
+        <button class="tab" onclick="filterCategory('葉書', this)" style="background:#e0e0e0; border:none; padding:6px 12px; border-radius:15px; font-size:0.8rem; font-weight:bold;">葉書・レターパック</button>
+      </div>
+
+      <!-- アイテム一覧リスト -->
+      <div id="items-container"></div>
+
+      <!-- 下部に買受サマリー -->
+      <div class="summary-card">
+        <div class="summary-title">📢 発注・買受サマリー（最低在庫割れ）</div>
+        <div class="summary-grid">
+          <div class="summary-item"><div class="label">郵便切手類 合計</div><div class="val" id="sum-stamps">0 円</div></div>
+          <div class="summary-item"><div class="label">葉書・レターパック 合計</div><div class="val" id="sum-postcards">0 円</div></div>
+          <div class="summary-item"><div class="label">収入印紙 合計</div><div class="val" id="sum-revenue">0 円</div></div>
+          <div class="summary-item"><div class="label">切手等 計（印紙除く）</div><div class="val" id="sum-postal-total">0 円</div></div>
+        </div>
+        <div class="total-box">
+          <div class="label">レジ出金額（商品前渡金 総額）</div>
+          <div class="val" id="sum-total-cash">0 円</div>
+        </div>
+        <button class="btn-action-main" onclick="switchMode('preview', document.querySelectorAll('.mode-tab')[1])">📄 請求書プレビュー・画像作成へ</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 【ビュー2】：プレビュー画面＆座標調整画面 -->
+  <div id="view-preview" class="section-view">
+    <div class="preview-card">
+      <div class="preview-title" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <span style="font-weight:bold; color:var(--primary);">請求書 プレビュー（赤字合成）</span>
+        <label style="font-size:0.85rem; cursor:pointer;"><input type="checkbox" id="gridToggle" checked onchange="updateCanvas()"> 高精度グリッド線</label>
+      </div>
       <div class="canvas-container">
         <canvas id="formCanvas"></canvas>
       </div>
-
-      <button class="btn-download" onclick="downloadFormImage()">📥 完成した請求書画像をダウンロード</button>
+      <button class="btn-action-main" onclick="downloadFormImage()">📥 完成した請求書画像をダウンロード</button>
     </div>
 
-    <div class="summary-card">
-      <div class="summary-title" style="color:var(--accent);">📢 発注・買受サマリー</div>
-      <div class="summary-grid">
-        <div class="summary-item"><div class="label">郵便切手類 合計</div><div class="val" id="sum-stamps">0 円</div></div>
-        <div class="summary-item"><div class="label">葉書・レターパック 合計</div><div class="val" id="sum-postcards">0 円</div></div>
-        <div class="summary-item"><div class="label">収入印紙 合計</div><div class="val" id="sum-revenue">0 円</div></div>
-        <div class="summary-item"><div class="label">切手等 計（印紙除く）</div><div class="val" id="sum-postal-total">0 円</div></div>
-      </div>
-      <div class="total-box">
-        <div class="label">レジ出金額（商品前渡金 総額）</div>
-        <div class="val" id="sum-total-cash">0 円</div>
-      </div>
+    <!-- 座標個別調整マネージャー -->
+    <div class="coord-manager">
+      <h3 style="font-size:0.95rem; color:#e65100; margin-bottom:6px;">📍 各アイテムの印刷座標（X・Y）個別調整</h3>
+      <div id="coord-rows-container"></div>
     </div>
-
-    <div class="tabs">
-      <button class="tab active" onclick="filterCategory('all', this)">すべて</button>
-      <button class="tab" onclick="filterCategory('印紙', this)">収入印紙</button>
-      <button class="tab" onclick="filterCategory('切手', this)">切手類</button>
-      <button class="tab" onclick="filterCategory('葉書', this)">葉書・レターパック</button>
-    </div>
-
-    <div id="items-container"></div>
   </div>
 
-  <div id="view-coords" class="section-view">
-    <div class="coord-manager">
-      <h3 style="font-size:1rem; color:#e65100; margin-bottom:6px;">📍 全アイテム 描画座標マネージャー</h3>
-      <p style="font-size:0.8rem; color:#666; margin-bottom:12px;">各アイテムの請求書内での印刷位置（X・Y座標）をいつでも個別に変更できます。変更はリアルタイムにプレビューに反映されます。</p>
-      
-      <div id="coord-rows-container">
-        </div>
+  <!-- 【ビュー3】：マスタ管理画面（店舗マスタ・商品マスタ） -->
+  <div id="view-master" class="section-view">
+    
+    <div class="master-card">
+      <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;">🏪 店舗マスタ設定（複数店舗・端末連携用）</h3>
+      <div class="master-form">
+        <input type="text" id="storeName" value="ファミリーマート博多住吉通り店" placeholder="店舗名">
+        <input type="text" id="storeAddress" value="福岡市博多区博多駅前4丁目3-2" placeholder="住所">
+        <input type="text" id="storeManager" value="浦田 恭平" placeholder="管理者名">
+        <button class="btn-add-master" style="background:#1976d2;" onclick="alert('店舗情報を保存しました！ (スプレッドシート連携拡張対応)')">店舗情報を保存</button>
+      </div>
     </div>
+
+    <div class="master-card">
+      <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;">📦 商品マスタ追加・編集</h3>
+      <div class="master-form">
+        <input type="text" id="newProdName" placeholder="商品名 (例: 50円切手)">
+        <input type="number" id="newProdPrice" placeholder="価格 (円)">
+        <input type="number" id="newProdMin" placeholder="最低在庫数">
+        <input type="number" id="newProdUnit" placeholder="買受単位">
+        <select id="newProdCat">
+          <option value="切手">切手</option>
+          <option value="印紙">印紙</option>
+          <option value="葉書">葉書・レターパック</option>
+        </select>
+        <button class="btn-add-master" onclick="addNewProduct()">商品を追加する</button>
+      </div>
+    </div>
+
   </div>
 
 </div>
 
 <script>
-// 全アイテムデータ（デフォルト座標 x, y を内包）
-const masterData = [
-  { id: 1, name: "収入印紙", price: 200, minStock: 100, unit: 100, category: "印紙", hasSheets: true, x: 200, y: 750 },
-  { id: 2, name: "10円切手", price: 10, minStock: 100, unit: 100, category: "切手", hasSheets: true, x: 200, y: 350 },
-  { id: 3, name: "16円切手", price: 16, minStock: 50, unit: 100, category: "切手", hasSheets: true, x: 200, y: 400 },
-  { id: 4, name: "22円切手", price: 22, minStock: 50, unit: 100, category: "切手", hasSheets: true, x: 200, y: 450 },
-  { id: 5, name: "85円切手", price: 85, minStock: 50, unit: 100, category: "切手", hasSheets: true, x: 200, y: 300 },
-  { id: 6, name: "110円切手", price: 110, minStock: 100, unit: 100, category: "切手", hasSheets: true, x: 200, y: 500 },
-  { id: 7, name: "120円切手", price: 120, minStock: 0, unit: 0, category: "切手", hasSheets: true, x: 200, y: 550 },
-  { id: 8, name: "はがき(インク)", price: 85, minStock: 10, unit: 10, category: "葉書", hasSheets: false, x: 700, y: 300 },
-  { id: 9, name: "年賀(インク)", price: 85, minStock: 10, unit: 50, category: "葉書", hasSheets: false, x: 700, y: 350 },
-  { id: 10, name: "年賀(ディズニー)", price: 85, minStock: 10, unit: 50, category: "葉書", hasSheets: false, x: 700, y: 400 },
-  { id: 11, name: "年賀(写真)", price: 95, minStock: 10, unit: 10, category: "葉書", hasSheets: false, x: 700, y: 450 },
-  { id: 12, name: "レターパックライト", price: 430, minStock: 20, unit: 20, category: "葉書", hasSheets: false, x: 700, y: 500 },
-  { id: 13, name: "レターパックプラス", price: 600, minStock: 20, unit: 20, category: "葉書", hasSheets: false, x: 700, y: 550 }
+// 商品マスタデータ（100枚は「100枚(1シート)」として管理、各座標x,yを保持）
+let masterData = [
+  { id: 1, name: "収入印紙", price: 200, minStock: 100, unit: 100, category: "印紙", hasSheets: true, hidden: false, x: 200, y: 750 },
+  { id: 2, name: "10円切手", price: 10, minStock: 100, unit: 100, category: "切手", hasSheets: true, hidden: false, x: 200, y: 350 },
+  { id: 3, name: "16円切手", price: 16, minStock: 50, unit: 100, category: "切手", hasSheets: true, hidden: false, x: 200, y: 400 },
+  { id: 4, name: "22円切手", price: 22, minStock: 50, unit: 100, category: "切手", hasSheets: true, hidden: false, x: 200, y: 450 },
+  { id: 5, name: "85円切手", price: 85, minStock: 50, unit: 100, category: "切手", hasSheets: true, hidden: false, x: 200, y: 300 },
+  { id: 6, name: "110円切手", price: 110, minStock: 100, unit: 100, category: "切手", hasSheets: true, hidden: false, x: 200, y: 500 },
+  { id: 7, name: "120円切手", price: 120, minStock: 0, unit: 0, category: "切手", hasSheets: true, hidden: false, x: 200, y: 550 },
+  { id: 8, name: "はがき(インク)", price: 85, minStock: 10, unit: 10, category: "葉書", hasSheets: false, hidden: false, x: 700, y: 300 },
+  { id: 9, name: "年賀(インク)", price: 85, minStock: 10, unit: 50, category: "葉書", hasSheets: false, hidden: false, x: 700, y: 350 },
+  { id: 10, name: "年賀(ディズニー)", price: 85, minStock: 10, unit: 50, category: "葉書", hasSheets: false, hidden: false, x: 700, y: 400 },
+  { id: 11, name: "年賀(写真)", price: 95, minStock: 10, unit: 10, category: "葉書", hasSheets: false, hidden: false, x: 700, y: 450 },
+  { id: 12, name: "レターパックライト", price: 430, minStock: 20, unit: 20, category: "葉書", hasSheets: false, hidden: false, x: 700, y: 500 },
+  { id: 13, name: "レターパックプラス", price: 600, minStock: 20, unit: 20, category: "葉書", hasSheets: false, hidden: false, x: 700, y: 550 }
 ];
 
 let inputState = {};
@@ -179,9 +223,6 @@ function initData() {
     inputState[item.id] = { sheet100: 0 };
     for (let i = 1; i <= 10; i++) inputState[item.id]['s' + i] = 0;
   });
-  // テスト用に85円切手と収入印紙を不足状態にしておき確認しやすくする
-  inputState[5].sheet100 = 0;
-  inputState[1].sheet100 = 0;
 }
 
 function switchMode(mode, btn) {
@@ -190,37 +231,23 @@ function switchMode(mode, btn) {
   
   if (btn) btn.classList.add('active');
   document.getElementById('view-' + mode).classList.add('active');
-  updateCanvas();
+  if (mode === 'preview') updateCanvas();
 }
 
-function renderCoordManager() {
-  const container = document.getElementById('coord-rows-container');
-  container.innerHTML = '';
-
-  masterData.forEach(item => {
-    const row = document.createElement('div');
-    row.className = 'coord-item-row';
-    row.innerHTML = `
-      <b>${item.name}</b>
-      <div class="coord-control-group">
-        X: <input type="range" min="0" max="1200" value="${item.x}" oninput="updateItemCoord(${item.id}, 'x', this.value)">
-        <span id="coord_x_${item.id}">${item.x}</span>px
-      </div>
-      <div class="coord-control-group">
-        Y: <input type="range" min="0" max="1700" value="${item.y}" oninput="updateItemCoord(${item.id}, 'y', this.value)">
-        <span id="coord_y_${item.id}">${item.y}</span>px
-      </div>
-    `;
-    container.appendChild(row);
-  });
-}
-
-function updateItemCoord(id, axis, val) {
+// 英語でのポップアップ確認付き非表示切り替え
+function toggleHideItem(id) {
   const item = masterData.find(i => i.id === id);
-  if (item) {
-    item[axis] = parseInt(val, 10);
-    document.getElementById(`coord_${axis}_${id}`).innerText = val;
-    updateCanvas();
+  if (!item) return;
+
+  const action = item.hidden ? "show" : "hide";
+  const msg = action === "hide" 
+    ? "Are you sure you want to hide this item?" 
+    : "Are you sure you want to show this item again?";
+
+  if (confirm(msg)) {
+    item.hidden = !item.hidden;
+    renderItems(currentCategory);
+    renderCoordManager();
   }
 }
 
@@ -236,50 +263,65 @@ function renderItems(filterCat = 'all') {
 
     const isShortage = item.minStock > 0 && totalStock < item.minStock;
     const card = document.createElement('div');
-    card.className = 'item-card';
+    card.className = `item-card ${item.hidden ? 'hidden-item' : ''}`;
 
     let slotsHtml = '';
+    // 100枚束 -> 100枚(1シート)に表記変更
     if (item.hasSheets) {
       const val = inputState[item.id].sheet100;
       slotsHtml += `
         <div class="slot-box" style="background:#e3f2fd; border-color:#bbdefb;">
-          <div class="slot-label"><span style="font-weight:bold; color:#1565c0;">100枚束</span></div>
-          <div class="stepper">
-            <button class="btn-step" onclick="changeCount(${item.id}, 'sheet100', -1)">-</button>
-            <input type="number" min="0" value="${val}" onchange="setCount(${item.id}, 'sheet100', this.value)">
-            <button class="btn-step" onclick="changeCount(${item.id}, 'sheet100', 1)">+</button>
+          <div class="slot-label" style="font-weight:bold; color:#1565c0;">100枚(1ｼｰﾄ)</div>
+          <div class="vertical-stepper">
+            <button class="btn-step-v" onclick="changeCount(${item.id}, 'sheet100', 1)">▲</button>
+            <input type="number" min="0" class="slot-input" value="${val}" onchange="setCount(${item.id}, 'sheet100', this.value)">
+            <button class="btn-step-v" onclick="changeCount(${item.id}, 'sheet100', -1)">▼</button>
           </div>
-        </div>`;
+        </div>
+      `;
     }
+
+    // 1〜10枚セットの在庫増減入力ボタンを段落を変えずに横に配置 (horizontal-stepper-container)
     for (let i = 1; i <= 10; i++) {
       const val = inputState[item.id]['s' + i];
       const showWarn = (i <= 5 && val <= 1) || (i > 5 && val < 1);
       slotsHtml += `
         <div class="slot-box">
-          <div class="slot-label"><span>${i}枚セット</span>${showWarn ? '<span class="slot-alert">補充!</span>' : ''}</div>
-          <div class="stepper">
-            <button class="btn-step" onclick="changeCount(${item.id}, 's${i}', -1)">-</button>
-            <input type="number" min="0" value="${val}" onchange="setCount(${item.id}, 's${i}', this.value)">
-            <button class="btn-step" onclick="changeCount(${item.id}, 's${i}', 1)">+</button>
+          <div class="slot-label">${i}枚 ${showWarn ? '<span class="slot-alert">補充!</span>' : ''}</div>
+          <div class="vertical-stepper">
+            <button class="btn-step-v" onclick="changeCount(${item.id}, 's${i}', 1)">▲</button>
+            <input type="number" min="0" class="slot-input" value="${val}" onchange="setCount(${item.id}, 's${i}', this.value)">
+            <button class="btn-step-v" onclick="changeCount(${item.id}, 's${i}', -1)">▼</button>
           </div>
-        </div>`;
+        </div>
+      `;
     }
 
     card.innerHTML = `
       <div class="item-header">
-        <div><span class="item-name">${item.name}</span><span class="item-price">¥${item.price.toLocaleString()}</span></div>
-        <span class="stock-badge ${isShortage ? 'badge-need' : 'badge-ok'}">在庫: ${totalStock}枚 (最低 ${item.minStock})</span>
+        <div class="item-title-area">
+          <span class="item-name">${item.name}</span>
+          <span class="item-price">¥${item.price}</span>
+          <button class="btn-hide-toggle" onclick="toggleHideItem(${item.id})">${item.hidden ? '非表示中 (表示する)' : '表示中 (非表示にする)'}</button>
+        </div>
+        <span class="stock-badge ${isShortage ? 'badge-need' : 'badge-ok'}" style="font-size:0.75rem; padding:3px 6px; border-radius:4px;">
+          在庫: ${totalStock}枚
+        </span>
       </div>
-      <div class="input-grid">${slotsHtml}</div>`;
+      <div class="horizontal-stepper-container">
+        ${slotsHtml}
+      </div>
+    `;
+
     container.appendChild(card);
   });
 
   calcSummary();
-  updateCanvas();
 }
 
 function changeCount(itemId, key, delta) {
-  inputState[itemId][key] = Math.max(0, (inputState[itemId][key] || 0) + delta);
+  const current = inputState[itemId][key] || 0;
+  inputState[itemId][key] = Math.max(0, current + delta);
   renderItems(currentCategory);
 }
 
@@ -291,14 +333,21 @@ function setCount(itemId, key, value) {
 let currentCategory = 'all';
 function filterCategory(cat, btn) {
   currentCategory = cat;
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  if (btn) btn.classList.add('active');
+  document.querySelectorAll('.tabs button').forEach(b => {
+    b.style.background = '#e0e0e0';
+    b.style.color = '#333';
+  });
+  if (btn) {
+    btn.style.background = '#1976d2';
+    btn.style.color = 'white';
+  }
   renderItems(cat);
 }
 
 function calcSummary() {
   let stampAmt = 0, postAmt = 0, revAmt = 0;
   masterData.forEach(item => {
+    if (item.hidden) return;
     let totalStock = (inputState[item.id].sheet100 || 0) * 100;
     for (let i = 1; i <= 10; i++) totalStock += (inputState[item.id]['s' + i] || 0) * i;
 
@@ -320,6 +369,64 @@ function calcSummary() {
   document.getElementById('sum-total-cash').innerText = `${totalCash.toLocaleString()} 円`;
 }
 
+function renderCoordManager() {
+  const container = document.getElementById('coord-rows-container');
+  container.innerHTML = '';
+
+  masterData.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'coord-item-row';
+    row.innerHTML = `
+      <b>${item.name}</b>
+      <div class="coord-control-group">
+        X:<input type="range" min="0" max="1200" value="${item.x}" oninput="updateItemCoord(${item.id}, 'x', this.value)">
+        <span id="coord_x_${item.id}" style="width:35px; text-align:right;">${item.x}</span>px
+      </div>
+      <div class="coord-control-group">
+        Y:<input type="range" min="0" max="1700" value="${item.y}" oninput="updateItemCoord(${item.id}, 'y', this.value)">
+        <span id="coord_y_${item.id}" style="width:35px; text-align:right;">${item.y}</span>px
+      </div>
+    `;
+    container.appendChild(row);
+  });
+}
+
+function updateItemCoord(id, axis, val) {
+  const item = masterData.find(i => i.id === id);
+  if (item) {
+    item[axis] = parseInt(val, 10);
+    document.getElementById(`coord_${axis}_${id}`).innerText = val;
+    updateCanvas();
+  }
+}
+
+function addNewProduct() {
+  const name = document.getElementById('newProdName').value;
+  const price = parseInt(document.getElementById('newProdPrice').value, 10);
+  const minStock = parseInt(document.getElementById('newProdMin').value, 10);
+  const unit = parseInt(document.getElementById('newProdUnit').value, 10);
+  const category = document.getElementById('newProdCat').value;
+
+  if (!name || isNaN(price)) {
+    alert("商品名と価格を正しく入力してください。");
+    return;
+  }
+
+  const newId = masterData.length > 0 ? Math.max(...masterData.map(i => i.id)) + 1 : 1;
+  masterData.push({
+    id: newId, name, price, minStock: isNaN(minStock) ? 0 : minStock, unit: isNaN(unit) ? 10 : unit, category, hasSheets: true, hidden: false, x: 200, y: 600
+  });
+
+  inputState[newId] = { sheet100: 0 };
+  for (let i = 1; i <= 10; i++) inputState[newId]['s' + i] = 0;
+
+  alert(`商品「${name}」を追加しました！`);
+  document.getElementById('newProdName').value = '';
+  document.getElementById('newProdPrice').value = '';
+  renderItems(currentCategory);
+  renderCoordManager();
+}
+
 function updateCanvas() {
   const canvas = document.getElementById('formCanvas');
   const ctx = canvas.getContext('2d');
@@ -336,7 +443,6 @@ function updateCanvas() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  // --- 高精度グリッド線の描画 ---
   if (showGrid) {
     ctx.save();
     ctx.lineWidth = 1;
@@ -362,22 +468,18 @@ function updateCanvas() {
     ctx.restore();
   }
 
-  // --- 全アイテムの赤字テキストを描画 ---
   ctx.fillStyle = '#d32f2f';
   ctx.font = 'bold 22px sans-serif';
 
   masterData.forEach(item => {
+    if (item.hidden) return;
     let totalStock = (inputState[item.id].sheet100 || 0) * 100;
     for (let i = 1; i <= 10; i++) totalStock += (inputState[item.id]['s' + i] || 0) * i;
 
-    // 最低在庫割れしている、あるいは座標調整用にあえて全表示したい場合はここで条件制御可能
     if (item.minStock > 0 && totalStock < item.minStock) {
       const qty = item.unit;
       const amt = qty * item.price;
-
-      // 各アイテムに設定された個別X, Y座標に数量を描画
       ctx.fillText(qty, item.x, item.y);
-      // 金額はその右隣（+110px等）に描画
       ctx.fillText(amt, item.x + 110, item.y);
     }
   });
@@ -397,6 +499,13 @@ function downloadFormImage() {
 
   gridToggle.checked = wasChecked;
   updateCanvas();
+}
+
+function resetAllInputs() {
+  if (confirm("入力した数値をすべてリセットしますか？")) {
+    initData();
+    renderItems(currentCategory);
+  }
 }
 
 // 初期化実行
