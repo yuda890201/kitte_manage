@@ -162,7 +162,6 @@
     </div>
   </div>
 
-  <!-- 【ビュー2】：プレビュー画面 -->
   <div id="view-preview" class="section-view">
     <div class="preview-layout">
       <div class="preview-card">
@@ -171,7 +170,6 @@
           <label style="font-size:0.85rem; cursor:pointer;"><input type="checkbox" id="gridToggle" checked onchange="updateCanvas()"> 高精度グリッド線</label>
         </div>
         
-        <!-- スペース（間隔）調整用の設定パネル -->
         <div style="background:#fff3e0; padding:8px 12px; border-radius:6px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; font-size:0.85rem;">
           <span><b>間隔（スペース）調整:</b></span>
           <div>
@@ -189,10 +187,7 @@
         <div class="canvas-container">
           <canvas id="formCanvas"></canvas>
         </div>
-
-        <!-- プレビューリフレッシュボタン -->
         <button class="btn-action-main" style="background:#0288d1; margin-top:8px;" onclick="refreshPreviewCanvas()">🔄 プレビューをリフレッシュ（再描画）</button>
-        
         <button class="btn-action-main" onclick="downloadFormImage()">📥 完成した請求書画像をダウンロード</button>
       </div>
 
@@ -272,19 +267,44 @@ let masterData = [
   { id: 13, name: "レターパックプラス", price: 600, minStock: 20, unit: 20, category: "葉書", isLetterPack: true, x: 700, y: 550 }
 ];
 
-let specialPrintData = [
+// 【デフォルトの正しい設計をハードコード】
+const defaultSpecialPrintData = [
   { key: "sum_stamps", name: "【サマリー】郵便切手類 合計", x: 700, y: 1100 },
   { key: "sum_postcards", name: "【サマリー】葉書・レターパック 合計", x: 700, y: 1140 },
   { key: "sum_revenue", name: "【サマリー】収入印紙 合計", x: 700, y: 1180 },
-  { key: "sum_revenue_amt", name: "【サマリー】収入印紙 合計(金額のみ)", x: 700, y: 1200 }, // 追加分
+  { key: "sum_revenue_amt", name: "【サマリー】収入印紙 合計(金額のみ)", x: 700, y: 1200 },
   { key: "sum_postal_total", name: "【サマリー】切手等 計（印紙除く）", x: 700, y: 1220 },
   { key: "sum_total_cash", name: "【サマリー】レジ出金額(商品前渡金 総額)", x: 700, y: 1270 },
   { key: "print_date", name: "【印字】作成年月日", x: 250, y: 220 },
   { key: "owner_seal", name: "【印字・編集可】オーナー印", x: 900, y: 220, editableText: "印" }
 ];
 
+let specialPrintData = JSON.parse(JSON.stringify(defaultSpecialPrintData));
 let storeDataMap = {};
 let bgImage = null;
+
+// 【重複や不要データを削除し、正しい初期データに統合するクリーンアップ関数】
+function sanitizeSpecialPrintData(loadedLayout) {
+  if (!loadedLayout || !Array.length) return JSON.parse(JSON.stringify(defaultSpecialPrintData));
+  
+  const cleanMap = new Map();
+  // デフォルトキーの枠をまず用意
+  defaultSpecialPrintData.forEach(def => cleanMap.set(def.key, { ...def }));
+  
+  // クラウド/キャッシュのデータをマージ（重複があれば上書きされて最新の座標が残る）
+  loadedLayout.forEach(item => {
+    if (cleanMap.has(item.key)) {
+      cleanMap.get(item.key).x = item.x;
+      cleanMap.get(item.key).y = item.y;
+      if (item.editableText !== undefined) cleanMap.get(item.key).editableText = item.editableText;
+    } else {
+      // カスタムで追加されたテキストキーはそのまま残す
+      cleanMap.set(item.key, item);
+    }
+  });
+
+  return Array.from(cleanMap.values());
+}
 
 function saveToLocalStorage() {
   try {
@@ -306,9 +326,10 @@ function loadFromLocalStorage() {
       const parsed = JSON.parse(cached);
       if (parsed.stores) storesData = parsed.stores;
       if (parsed.products) masterData = parsed.products;
-      if (parsed.layout) specialPrintData = parsed.layout;
       if (parsed.inventory) storeDataMap = parsed.inventory;
       if (parsed.storeId) currentStoreId = parsed.storeId;
+      // ロード時に必ずクリーンアップを通す
+      if (parsed.layout) specialPrintData = sanitizeSpecialPrintData(parsed.layout);
       return true;
     }
   } catch(e) {}
@@ -332,7 +353,11 @@ async function loadFromCloud() {
     
     if (json.stores && json.stores.length > 0) storesData = json.stores;
     if (json.products && json.products.length > 0) masterData = json.products;
-    if (json.layout && json.layout.length > 0) specialPrintData = json.layout;
+    
+    // クラウドから取得したレイアウトもクリーンアップを通す
+    if (json.layout && json.layout.length > 0) {
+      specialPrintData = sanitizeSpecialPrintData(json.layout);
+    }
     
     if (json.inventory && json.inventory.length > 0) {
       storeDataMap = {};
@@ -381,6 +406,9 @@ async function syncWithCloud() {
       });
     });
   });
+
+  // 保存前にもう一度クリーンアップしてゴミデータ送信を防ぐ
+  specialPrintData = sanitizeSpecialPrintData(specialPrintData);
 
   const payload = {
     stores: storesData,
@@ -968,16 +996,11 @@ function renderCustomTextList() {
   const container = document.getElementById('custom-text-list-container');
   if (!container) return;
   container.innerHTML = '';
-  specialPrintData.filter(sp => ![
-    'sum_stamps',
-    'sum_postcards',
-    'sum_revenue',
-    'sum_revenue_amt',
-    'sum_postal_total',
-    'sum_total_cash',
-    'print_date',
-    'owner_seal'
-  ].includes(sp.key)).forEach(sp => {
+  
+  // デフォルトキーは削除不可リストに入れる
+  const defaultKeys = defaultSpecialPrintData.map(d => d.key);
+  
+  specialPrintData.filter(sp => !defaultKeys.includes(sp.key)).forEach(sp => {
     const div = document.createElement('div');
     div.className = 'master-list-item';
     div.innerHTML = `
@@ -1002,6 +1025,7 @@ function addCustomTextItem() {
   document.getElementById('customTextKey').value = '';
   document.getElementById('customTextVal').value = '';
   renderCustomTextList();
+  renderCoordManager();
   syncWithCloud();
   alert("印字テキストを追加しました！");
 }
@@ -1010,27 +1034,22 @@ function deleteCustomText(key) {
   if (confirm("この印字テキストを削除しますか？")) {
     specialPrintData = specialPrintData.filter(s => s.key !== key);
     renderCustomTextList();
+    renderCoordManager(); // コーディネーター画面も同期
     syncWithCloud();
   }
 }
 
-// プレビューを強制的にリフレッシュ（クリア＆再描画）する関数
+// プレビューの完全クリア＆リフレッシュ
 function refreshPreviewCanvas() {
   const canvas = document.getElementById('formCanvas');
   if (!canvas) return;
-  const ctx = canvas.getContext('2d');
   
-  // 1. キャンバスの大きさを一度0にして、もう一度元のサイズに戻す
-  // これが最も強力に、古い描画データをメモリから完全に破棄する方法です
+  // canvasのwidthを一度0にして描画メモリを完全に破棄（重複バグ防止）
   const w = canvas.width;
-  const h = canvas.height;
   canvas.width = 0;
   canvas.width = w;
-  canvas.height = h;
   
-  // 2. 背景画像を再描画して、最新のデータで印字を描き直す
   updateCanvas();
-  
   alert("プレビューを完全に初期化しました！");
 }
 
@@ -1110,11 +1129,11 @@ function updateCanvas() {
   // 2. 特殊項目・サマリー等の描画
   const vals = getSummaryValues();
   const summaryMap = {
-    sum_stamps: `${vals.stampQty}枚      ${vals.stampAmt.toLocaleString()}`,
-    sum_postcards: `${vals.postQty}枚      ${vals.postAmt.toLocaleString()}`,
-    sum_revenue: `${vals.revQty}枚      ￥${vals.revAmt.toLocaleString()}`,
-    sum_revenue_amt: `￥${vals.revAmt.toLocaleString()}`, // 収入印紙の金額のみ（追加）
-    sum_postal_total: `￥${vals.postalTotal.toLocaleString()}`,
+    sum_stamps: `${vals.stampQty}      ${vals.stampAmt.toLocaleString()}`,
+    sum_postcards: `${vals.postQty}      ${vals.postAmt.toLocaleString()}`,
+    sum_revenue: `${vals.revQty}      ${vals.revAmt.toLocaleString()}`,
+    sum_revenue_amt: `￥${vals.revAmt.toLocaleString()}`, // 収入印紙 金額のみ
+    sum_postal_total: `￥${vals.postalTotal.toLocaleString()}`, // 切手等計 金額のみ
     sum_total_cash: `￥${vals.totalCash.toLocaleString()}`,
     print_date: new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })
   };
