@@ -162,7 +162,7 @@
     </div>
   </div>
 
-  <!-- 【ビュー2】：プレビュー画面（横画面で左右分割） -->
+  <!-- 【ビュー2】：プレビュー画面 -->
   <div id="view-preview" class="section-view">
     <div class="preview-layout">
       <div class="preview-card">
@@ -170,6 +170,22 @@
           <span style="font-weight:bold; color:var(--primary);">請求書 プレビュー</span>
           <label style="font-size:0.85rem; cursor:pointer;"><input type="checkbox" id="gridToggle" checked onchange="updateCanvas()"> 高精度グリッド線</label>
         </div>
+        
+        <!-- スペース（間隔）調整用の設定パネル -->
+        <div style="background:#fff3e0; padding:8px 12px; border-radius:6px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; font-size:0.85rem;">
+          <span><b>間隔（スペース）調整:</b></span>
+          <div>
+            商品名〜数量: <select id="spaceNameQty" onchange="updateCanvas()" style="padding:2px 4px;">
+              <option value="    ">4個</option><option value="        " selected>8個</option><option value="            ">12個</option><option value="                ">16個</option>
+            </select>
+          </div>
+          <div>
+            数量〜金額: <select id="spaceQtyAmt" onchange="updateCanvas()" style="padding:2px 4px;">
+              <option value="    ">4個</option><option value="        " selected>8個</option><option value="            ">12個</option><option value="                ">16個</option>
+            </select>
+          </div>
+        </div>
+
         <div class="canvas-container">
           <canvas id="formCanvas"></canvas>
         </div>
@@ -183,7 +199,6 @@
     </div>
   </div>
 
-  <!-- 【ビュー3】：マスタ管理画面（テキスト編集対応） -->
   <div id="view-master" class="section-view">
     
     <div class="master-card">
@@ -215,7 +230,7 @@
     </div>
 
     <div class="master-card" style="border-left-color: #2196f3;">
-      <h3 style="font-size:0.95rem; color:#1976d2; margin-bottom:4px;">✏️ プレビュー印字テキスト追加・編集・削除</h3>
+      <h3 style="font-size:0.95rem; color:#1976d2; margin-bottom:4px;">✏️ プレビュー印字テキスト追加・削除</h3>
       <div class="master-form">
         <input type="text" id="customTextKey" placeholder="識別キー (例: note_text)">
         <input type="text" id="customTextVal" placeholder="印字内容 (例: 備考欄メモ等)">
@@ -237,7 +252,6 @@ let storesData = [
 
 let currentStoreId = parseInt(localStorage.getItem('kitte_current_store_id'), 10) || 1;
 
-// 元のシンプルな単一座標（x, y）に戻したマスターデータ
 let masterData = [
   { id: 1, name: "収入印紙", price: 200, minStock: 100, unit: 100, category: "印紙", hasSheets: true, x: 200, y: 750 },
   { id: 2, name: "10円切手", price: 10, minStock: 100, unit: 100, category: "切手", hasSheets: true, x: 200, y: 350 },
@@ -705,7 +719,7 @@ function shareOrderSummary() {
   }
 }
 
-// --- 座標マネージャー（元のシンプル1セット座標 ＋ テキスト編集対応） ---
+// --- 座標マネージャー（元のシンプル1セット座標） ---
 function renderCoordManager() {
   const container = document.getElementById('coord-rows-container');
   if (!container) return;
@@ -800,7 +814,6 @@ function updateSpecialText(key, val) {
   if (sp) {
     sp.editableText = val;
     updateCanvas();
-    triggerAutoSave();
   }
 }
 
@@ -987,12 +1000,16 @@ function deleteCustomText(key) {
   }
 }
 
-// プレビュー描画（商品名/数量/金額をマスタ等からテキスト編集でスペース調整可能に）
+// プレビュー描画（商品名・数量・金額をプルダウンで選べるスペース設定で連結）
 function updateCanvas() {
   const canvas = document.getElementById('formCanvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   const showGrid = document.getElementById('gridToggle').checked;
+
+  // プルダウンから選択されたスペース幅を取得
+  const space1 = document.getElementById('spaceNameQty') ? document.getElementById('spaceNameQty').value : "        ";
+  const space2 = document.getElementById('spaceQtyAmt') ? document.getElementById('spaceQtyAmt').value : "        ";
 
   if (bgImage) {
     canvas.width = bgImage.width;
@@ -1036,7 +1053,7 @@ function updateCanvas() {
   initStoreData(currentStoreId);
   const sData = storeDataMap[currentStoreId];
 
-  // 1. 各商品の赤字描画（商品名 / 数量 / 金額を一つの行位置 y と各座標 x で描画）
+  // 1. 各商品の赤字描画（商品名 + プルダウンのスペース + 数量 + プルダウンのスペース + 金額）
   masterData.forEach(item => {
     if (sData.hiddenItems[item.id]) return;
     const inv = sData.inventory[item.id];
@@ -1052,8 +1069,7 @@ function updateCanvas() {
       const qty = item.unit;
       const amt = qty * item.price;
       
-      // 商品名、数量、金額をまとめて描画（スペース調整はテキスト内容にスペースを挟むかマスタ画面等で調整可能）
-      const displayText = `${item.name}    ${qty}    ${amt.toLocaleString()}`;
+      const displayText = `${item.name}${space1}${qty}${space2}${amt.toLocaleString()}`;
       ctx.fillText(displayText, item.x, item.y);
     }
   });
