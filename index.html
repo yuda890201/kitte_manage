@@ -252,31 +252,31 @@ let storesData = [
 let currentStoreId = parseInt(localStorage.getItem('kitte_current_store_id'), 10) || 1;
 
 let masterData = [
-  { id: 1, name: "収入印紙", price: 200, minStock: 100, unit: 100, category: "印紙", hasSheets: true, x: 200, y: 750 },
-  { id: 2, name: "10円切手", price: 10, minStock: 100, unit: 100, category: "切手", hasSheets: true, x: 200, y: 350 },
-  { id: 3, name: "16円切手", price: 16, minStock: 50, unit: 100, category: "切手", hasSheets: true, x: 200, y: 400 },
-  { id: 4, name: "22円切手", price: 22, minStock: 50, unit: 100, category: "切手", hasSheets: true, x: 200, y: 450 },
-  { id: 5, name: "85円切手", price: 85, minStock: 50, unit: 100, category: "切手", hasSheets: true, x: 200, y: 300 },
-  { id: 6, name: "110円切手", price: 110, minStock: 100, unit: 100, category: "切手", hasSheets: true, x: 200, y: 500 },
-  { id: 7, name: "120円切手", price: 120, minStock: 0, unit: 0, category: "切手", hasSheets: true, x: 200, y: 550 },
-  { id: 8, name: "はがき(インク)", price: 85, minStock: 10, unit: 10, category: "葉書", hasSheets: false, x: 700, y: 300 },
-  { id: 9, name: "年賀(インク)", price: 85, minStock: 10, unit: 50, category: "葉書", hasSheets: false, x: 700, y: 350 },
-  { id: 10, name: "年賀(ディズニー)", price: 85, minStock: 10, unit: 50, category: "葉書", hasSheets: false, x: 700, y: 400 },
-  { id: 11, name: "年賀(写真)", price: 95, minStock: 10, unit: 10, category: "葉書", hasSheets: false, x: 700, y: 450 },
-  { id: 12, name: "レターパックライト", price: 430, minStock: 20, unit: 20, category: "葉書", isLetterPack: true, x: 700, y: 500 },
-  { id: 13, name: "レターパックプラス", price: 600, minStock: 20, unit: 20, category: "葉書", isLetterPack: true, x: 700, y: 550 }
+  { id: 1, name: "収入印紙", price: 200, minStock: 100, unit: 100, category: "印紙", hasSheets: true, x: 286, y: 651 },
+  { id: 2, name: "10円切手", price: 10, minStock: 100, unit: 100, category: "切手", hasSheets: true, x: 293, y: 342 },
+  { id: 3, name: "16円切手", price: 16, minStock: 50, unit: 100, category: "切手", hasSheets: true, x: 293, y: 373 },
+  { id: 4, name: "22円切手", price: 22, minStock: 50, unit: 100, category: "切手", hasSheets: true, x: 293, y: 403 },
+  { id: 5, name: "85円切手", price: 85, minStock: 50, unit: 100, category: "切手", hasSheets: true, x: 293, y: 248 },
+  { id: 6, name: "110円切手", price: 110, minStock: 100, unit: 100, category: "切手", hasSheets: true, x: 270, y: 279 },
+  { id: 7, name: "120円切手", price: 120, minStock: 100, unit: 100, category: "切手", hasSheets: true, x: 270, y: 432 },
+  { id: 8, name: "はがき(インク)", price: 85, minStock: 10, unit: 10, category: "葉書", hasSheets: false, x: 670, y: 279 },
+  { id: 9, name: "年賀(インク)", price: 85, minStock: 10, unit: 50, category: "葉書", hasSheets: false, x: 689, y: 398 },
+  { id: 10, name: "年賀(ディズニー)", price: 85, minStock: 10, unit: 50, category: "葉書", hasSheets: false, x: 648, y: 429 },
+  { id: 11, name: "年賀(写真)", price: 95, minStock: 10, unit: 10, category: "葉書", hasSheets: false, x: 711, y: 463 },
+  { id: 12, name: "レターパックライト", price: 430, minStock: 20, unit: 20, category: "葉書", isLetterPack: true, x: 626, y: 309 },
+  { id: 13, name: "レターパックプラス", price: 600, minStock: 20, unit: 20, category: "葉書", isLetterPack: true, x: 628, y: 338 }
 ];
 
-// 【デフォルトの正しい設計をハードコード】
+// 【デフォルトの正しい設計（更新版）】
 const defaultSpecialPrintData = [
-  { key: "sum_stamps", name: "【サマリー】郵便切手類 合計", x: 700, y: 1100 },
-  { key: "sum_postcards", name: "【サマリー】葉書・レターパック 合計", x: 700, y: 1140 },
-  { key: "sum_revenue", name: "【サマリー】収入印紙 合計", x: 700, y: 1180 },
-  { key: "sum_revenue_amt", name: "収入印紙 合計(金額のみ)", x: 700, y: 1200 },
-  { key: "sum_postal_total", name: "【サマリー】切手等 計（印紙除く）", x: 700, y: 1220 },
-  { key: "sum_total_cash", name: "【サマリー】レジ出金額(商品前渡金 総額)", x: 700, y: 1270 },
-  { key: "print_date", name: "【印字】作成年月日", x: 250, y: 220 },
-  { key: "owner_seal", name: "【印字・編集可】オーナー印", x: 900, y: 220, editableText: "印" }
+  { key: "sum_stamps", name: "【サマリー】郵便切手類 合計", x: 406, y: 587 },
+  { key: "sum_postcards", name: "【サマリー】葉書・レターパック 合計", x: 841, y: 587 },
+  { key: "sum_revenue", name: "【サマリー】収入印紙 合計", x: 400, y: 870 },
+  { key: "sum_revenue_amt", name: "【サマリー】収入印紙 合計(金額のみ)", x: 911, y: 900 },
+  { key: "sum_postal_total", name: "【サマリー】切手等 計（印紙除く）", x: 911, y: 870 },
+  { key: "sum_total_cash", name: "【サマリー】レジ出金額(商品前渡金 総額)", x: 912, y: 936 },
+  { key: "print_date", name: "【印字】作成年月日", x: 232, y: 1124 },
+  { key: "owner_seal", name: "【印字・編集可】オーナー印", x: 842, y: 1154, editableText: "印" }
 ];
 
 let specialPrintData = JSON.parse(JSON.stringify(defaultSpecialPrintData));
