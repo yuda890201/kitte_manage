@@ -95,13 +95,16 @@
     .btn-del { background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; }
 
     .btn-action-main { width: 100%; background: #c62828; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    
+    /* 同期ステータス表示 */
+    .sync-status { font-size: 0.75rem; color: #ffeb3b; margin-left: 8px; font-weight: normal; }
   </style>
 </head>
 <body>
 
 <header>
-  <h1><img src="kitte_manage.png" alt="Icon"> 切手管理</h1>
-  <button class="btn-header" onclick="resetAllInputs()">クリア</button>
+  <h1><img src="kitte_manage.png" alt="Icon"> 切手管理 <span id="syncStatus" class="sync-status">(同期中...)</span></h1>
+  <button class="btn-header" onclick="syncWithCloud()">手動同期</button>
 </header>
 
 <div class="container">
@@ -210,6 +213,9 @@
 </div>
 
 <script>
+// ★ここにステップ3で取得したGASのウェブアプリURLを貼り付けてください
+const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzaqg7CwWgX5AOpUL-b8sARywAw_YAptFV63HX7CdByDNl5Ku46xCnc2CkKG0qazJK8/exec";
+
 let storesData = [
   { id: 1, name: "1号店" }
 ];
@@ -227,7 +233,6 @@ let masterData = [
   { id: 9, name: "年賀(インク)", price: 85, minStock: 10, unit: 50, category: "葉書", hasSheets: false, hidden: false, x: 700, y: 350 },
   { id: 10, name: "年賀(ディズニー)", price: 85, minStock: 10, unit: 50, category: "葉書", hasSheets: false, hidden: false, x: 700, y: 400 },
   { id: 11, name: "年賀(写真)", price: 95, minStock: 10, unit: 10, category: "葉書", hasSheets: false, hidden: false, x: 700, y: 450 },
-  // レターパックは「バラ(1枚)」と「1束(20枚)」の2項目のみに整理
   { id: 12, name: "レターパックライト", price: 430, minStock: 20, unit: 20, category: "葉書", isLetterPack: true, hidden: false, x: 700, y: 500 },
   { id: 13, name: "レターパックプラス", price: 600, minStock: 20, unit: 20, category: "葉書", isLetterPack: true, hidden: false, x: 700, y: 550 }
 ];
@@ -245,6 +250,95 @@ let specialPrintData = [
 let storeInventories = {};
 let bgImage = null;
 
+// --- スプレッドシート同期関数 ---
+async function loadFromCloud() {
+  if (GAS_API_URL.includes("YOUR_GAS_WEB_APP_URL")) return; // 未設定時はスキップ
+  setSyncStatus("(読込中...)");
+  try {
+    const res = await fetch(GAS_API_URL);
+    const json = await res.json();
+    
+    if (json.stores && json.stores.length > 0) storesData = json.stores;
+    if (json.products && json.products.length > 0) masterData = json.products;
+    if (json.layout && json.layout.length > 0) specialPrintData = json.layout;
+    
+    if (json.inventory && json.inventory.length > 0) {
+      storeInventories = {};
+      json.inventory.forEach(inv => {
+        if (!storeInventories[inv.storeId]) storeInventories[inv.storeId] = {};
+        try {
+          storeInventories[inv.storeId][inv.productId] = JSON.parse(inv.dataJson);
+        } catch(e) {}
+      });
+    }
+    setSyncStatus("(同期完了)");
+    initStoreInventory(currentStoreId);
+    renderStoreSelector();
+    renderItems(currentCategory);
+  } catch(e) {
+    setSyncStatus("(同期失敗)");
+  }
+}
+
+async function syncWithCloud() {
+  if (GAS_API_URL.includes("YOUR_GAS_WEB_APP_URL")) {
+    alert("GAS_API_URLを設定してください。");
+    return;
+  }
+  setSyncStatus("(保存中...)");
+  
+  // 在庫データをフラットな配列に変換
+  let inventoryList = [];
+  Object.keys(storeInventories).forEach(sId => {
+    Object.keys(storeInventories[sId]).forEach(pId => {
+      inventoryList.push({
+        storeId: sId,
+        productId: pId,
+        dataJson: JSON.stringify(storeInventories[sId][pId])
+      });
+    });
+  });
+
+  const payload = {
+    stores: storesData,
+    products: masterData,
+    inventory: inventoryList,
+    layout: specialPrintData
+  };
+
+  try {
+    const res = await fetch(GAS_API_URL, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+    if (json.status === "success") {
+      setSyncStatus("(保存完了)");
+    } else {
+      setSyncStatus("(保存エラー)");
+    }
+  } catch(e) {
+    setSyncStatus("(通信エラー)");
+  }
+}
+
+function setSyncStatus(txt) {
+  const el = document.getElementById('syncStatus');
+  if (el) el.innerText = txt;
+}
+
+// 変更時に自動保存（デバウンス処理）
+let saveTimer = null;
+function triggerAutoSave() {
+  if (GAS_API_URL.includes("YOUR_GAS_WEB_APP_URL")) return;
+  setSyncStatus("(変更有・保存待ち)");
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    syncWithCloud();
+  }, 2000); // 操作停止から2秒後に自動保存
+}
+
+// --- 以下、既存のアプリロジック ---
 function preloadBackground() {
   bgImage = new Image();
   bgImage.src = 'form_base.png';
@@ -272,6 +366,7 @@ function initStoreInventory(storeId) {
 function initData() {
   initStoreInventory(currentStoreId);
   renderStoreSelector();
+  loadFromCloud(); // 起動時にクラウドから同期
 }
 
 function switchMode(mode, btn) {
@@ -293,6 +388,7 @@ function switchMode(mode, btn) {
 
 function renderStoreSelector() {
   const sel = document.getElementById('storeSelector');
+  if (!sel) return;
   sel.innerHTML = '';
   storesData.forEach(s => {
     const opt = document.createElement('option');
@@ -324,11 +420,13 @@ function toggleHideItem(id) {
   if (confirm(msg)) {
     item.hidden = !item.hidden;
     renderItems(currentCategory);
+    triggerAutoSave();
   }
 }
 
 function renderItems(filterCat = 'all') {
   const container = document.getElementById('items-container');
+  if (!container) return;
   container.innerHTML = '';
 
   initStoreInventory(currentStoreId);
@@ -358,8 +456,6 @@ function renderItems(filterCat = 'all') {
     card.className = `item-card ${item.hidden ? 'hidden-item' : ''}`;
 
     let slotsHtml = '';
-    
-    // レターパック専用の2項目表示（バラ1枚、1束20枚）
     if (item.isLetterPack) {
       const singleVal = inv[item.id].single || 0;
       const bundleVal = inv[item.id].bundle20 || 0;
@@ -439,12 +535,14 @@ function changeCount(itemId, key, delta) {
   const current = inv[itemId][key] || 0;
   inv[itemId][key] = Math.max(0, current + delta);
   renderItems(currentCategory);
+  triggerAutoSave();
 }
 
 function setCount(itemId, key, value) {
   const inv = storeInventories[currentStoreId];
   inv[itemId][key] = Math.max(0, parseInt(value, 10) || 0);
   renderItems(currentCategory);
+  triggerAutoSave();
 }
 
 function changeCountLP(itemId, key, delta) {
@@ -452,12 +550,14 @@ function changeCountLP(itemId, key, delta) {
   const current = inv[itemId][key] || 0;
   inv[itemId][key] = Math.max(0, current + delta);
   renderItems(currentCategory);
+  triggerAutoSave();
 }
 
 function setCountLP(itemId, key, value) {
   const inv = storeInventories[currentStoreId];
   inv[itemId][key] = Math.max(0, parseInt(value, 10) || 0);
   renderItems(currentCategory);
+  triggerAutoSave();
 }
 
 let currentCategory = 'all';
@@ -513,6 +613,7 @@ function calcSummary() {
 
 function renderCoordManager() {
   const container = document.getElementById('coord-rows-container');
+  if (!container) return;
   container.innerHTML = '';
 
   masterData.forEach(item => {
@@ -561,6 +662,7 @@ function updateItemCoord(id, axis, val) {
     item[axis] = parseInt(val, 10);
     document.getElementById(`coord_${axis}_${id}`).innerText = val;
     updateCanvas();
+    triggerAutoSave();
   }
 }
 
@@ -570,6 +672,7 @@ function updateSpecialCoord(key, axis, val) {
     sp[axis] = parseInt(val, 10);
     document.getElementById(`coord_${axis}_${key}`).innerText = val;
     updateCanvas();
+    triggerAutoSave();
   }
 }
 
@@ -578,11 +681,13 @@ function updateSpecialText(key, val) {
   if (sp) {
     sp.editableText = val;
     updateCanvas();
+    triggerAutoSave();
   }
 }
 
 function renderStoreMasterList() {
   const container = document.getElementById('store-list-container');
+  if (!container) return;
   container.innerHTML = '';
   storesData.forEach(s => {
     const div = document.createElement('div');
@@ -616,6 +721,7 @@ function saveStoreMaster() {
   document.getElementById('storeNameInput').value = '';
   renderStoreMasterList();
   renderStoreSelector();
+  syncWithCloud();
   alert("店舗マスタを保存しました！");
 }
 
@@ -636,11 +742,13 @@ function deleteStore(id) {
     renderStoreMasterList();
     renderStoreSelector();
     renderItems(currentCategory);
+    syncWithCloud();
   }
 }
 
 function renderProductMasterList() {
   const container = document.getElementById('product-list-container');
+  if (!container) return;
   container.innerHTML = '';
   masterData.forEach(p => {
     const div = document.createElement('div');
@@ -690,6 +798,7 @@ function saveProductMaster() {
   document.getElementById('prodUnitInput').value = '';
   renderProductMasterList();
   renderItems(currentCategory);
+  syncWithCloud();
   alert("商品マスタを保存しました！");
 }
 
@@ -711,11 +820,13 @@ function deleteProduct(id) {
     masterData = masterData.filter(p => p.id !== id);
     renderProductMasterList();
     renderItems(currentCategory);
+    syncWithCloud();
   }
 }
 
 function renderCustomTextList() {
   const container = document.getElementById('custom-text-list-container');
+  if (!container) return;
   container.innerHTML = '';
   specialPrintData.filter(sp => !['sum_stamps','sum_postcards','sum_revenue','sum_postal_total','sum_total_cash','print_date','owner_seal'].includes(sp.key)).forEach(sp => {
     const div = document.createElement('div');
@@ -742,6 +853,7 @@ function addCustomTextItem() {
   document.getElementById('customTextKey').value = '';
   document.getElementById('customTextVal').value = '';
   renderCustomTextList();
+  syncWithCloud();
   alert("印字テキストを追加しました！プレビュー・座標画面で位置を調整できます。");
 }
 
@@ -749,11 +861,13 @@ function deleteCustomText(key) {
   if (confirm("この印字テキストを削除しますか？")) {
     specialPrintData = specialPrintData.filter(s => s.key !== key);
     renderCustomTextList();
+    syncWithCloud();
   }
 }
 
 function updateCanvas() {
   const canvas = document.getElementById('formCanvas');
+  if (!canvas) return;
   const ctx = canvas.getContext('2d');
   const showGrid = document.getElementById('gridToggle').checked;
 
@@ -855,6 +969,7 @@ function resetAllInputs() {
   if (confirm("入力した数値をすべてリセットしますか？")) {
     initStoreInventory(currentStoreId);
     renderItems(currentCategory);
+    triggerAutoSave();
   }
 }
 
