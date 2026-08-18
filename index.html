@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>切手・印紙 在庫管理＆請求書作成ツール</title>
+  <title>切手・印紙 在庫管理＆請求書自動作成システム</title>
   <style>
     :root {
       --primary: #1976d2;
@@ -34,7 +34,11 @@
     .section-view { display: none; }
     .section-view.active { display: block; }
 
-    /* 入力画面：上部に入力、下部に買受サマリー */
+    /* 店舗選択バー */
+    .store-bar { background: #e3f2fd; border: 1px solid #bbdefb; padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; font-weight: bold; color: #0d47a1; }
+    .store-bar select { padding: 4px 8px; border-radius: 4px; border: 1px solid #90caf9; font-size: 0.9rem; }
+
+    /* 入力メインコンテナ */
     .input-main-container { display: flex; flex-direction: column; gap: 16px; }
 
     .summary-card { background: var(--card-bg); border-radius: 10px; padding: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid var(--accent); }
@@ -47,43 +51,49 @@
     .total-box .label { font-size: 0.8rem; color: #e65100; font-weight: bold; }
     .total-box .val { font-size: 1.35rem; font-weight: bold; color: #d84315; }
 
-    /* アイテムカード */
-    .item-card { background: var(--card-bg); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
-    .item-card.hidden-item { opacity: 0.4; background: #f0f0f0; }
-    .item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    /* アイテムカード（通常＆非表示時折りたたみ） */
+    .item-card { background: var(--card-bg); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); transition: all 0.2s; }
+    .item-card.hidden-item { background: #212121; color: white; padding: 8px 14px; }
+    .item-card.hidden-item .item-price, .item-card.hidden-item .slot-box { display: none; }
+    .item-card.hidden-item .item-name { color: white; }
+    
+    .item-header { display: flex; justify-content: space-between; align-items: center; }
     .item-title-area { display: flex; align-items: center; gap: 8px; }
     .item-name { font-size: 1rem; font-weight: bold; }
     .item-price { font-size: 0.85rem; color: var(--text-sub); }
     .btn-hide-toggle { background: #eee; border: 1px solid #ccc; font-size: 0.75rem; padding: 3px 8px; border-radius: 4px; cursor: pointer; }
+    .item-card.hidden-item .btn-hide-toggle { background: #424242; color: white; border-color: #616161; }
 
-    /* 100枚〜10枚セットの横並びコンテナ */
-    .horizontal-stepper-container { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+    .horizontal-stepper-container { display: flex; gap: 6px; overflow-x: auto; padding-top: 8px; }
     .slot-box { background: #fafafa; border: 1px solid var(--border); border-radius: 6px; padding: 6px; text-align: center; min-width: 75px; flex: 1; }
     .slot-label { font-size: 0.7rem; color: var(--text-sub); margin-bottom: 4px; white-space: nowrap; }
     .slot-alert { color: var(--accent); font-weight: bold; font-size: 0.65rem; }
 
-    /* 上下に分かれた増減ボタン */
     .vertical-stepper { display: flex; flex-direction: column; align-items: center; gap: 2px; }
     .btn-step-v { width: 100%; height: 22px; border: 1px solid #ccc; background: #fff; border-radius: 3px; font-weight: bold; cursor: pointer; font-size: 0.8rem; line-height: 1; }
-    .btn-step-v:active { background: #e0e0e0; }
     .slot-input { width: 100%; height: 26px; text-align: center; font-size: 0.9rem; border: 1px solid #ccc; border-radius: 3px; font-weight: bold; }
 
-    /* 座標調整画面 */
+    /* プレビュー＆座標調整 */
     .preview-card { background: var(--card-bg); border-radius: 10px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid var(--primary); }
     .canvas-container { width: 100%; overflow: auto; max-height: 450px; background: #eee; border-radius: 6px; text-align: center; padding: 8px; border: 1px solid #ccc; }
     canvas { background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    
     .coord-manager { background: white; border-radius: 10px; padding: 14px; margin-top: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid #ff9800; }
     .coord-item-row { background: #fafafa; border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; margin-bottom: 6px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; font-size: 0.85rem; }
-    .coord-item-row b { color: #333; flex: 1; min-width: 100px; }
+    .coord-item-row b { color: #333; flex: 1; min-width: 120px; }
     .coord-control-group { display: flex; align-items: center; gap: 6px; }
     .coord-control-group input[type="range"] { width: 90px; }
 
-    /* マスタ管理画面用スタイル */
+    /* マスタ管理画面 */
     .master-card { background: white; border-radius: 10px; padding: 14px; margin-bottom: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid #4caf50; }
     .master-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
     .master-form input, .master-form select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; }
-    .btn-add-master { grid-column: span 2; background: #4caf50; color: white; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+    .btn-submit-master { grid-column: span 2; background: #4caf50; color: white; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer; }
     
+    .master-list-item { display: flex; justify-content: space-between; align-items: center; background: #fafafa; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px; font-size: 0.85rem; }
+    .btn-edit { background: #ff9800; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; }
+    .btn-del { background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; }
+
     .btn-action-main { width: 100%; background: #c62828; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
   </style>
 </head>
@@ -96,18 +106,20 @@
 
 <div class="container">
 
-  <!-- 上部モード切り替えタブ -->
+  <div class="store-bar">
+    <span>🏪 対象店舗: <span id="currentStoreDisplay">博多住吉通り店 (1号店)</span></span>
+    <select id="storeSelector" onchange="changeCurrentStore(this.value)"></select>
+  </div>
+
   <div class="mode-tabs">
     <button class="mode-tab active" onclick="switchMode('input', this)">📋 入力・サマリー</button>
     <button class="mode-tab" onclick="switchMode('preview', this)">👁️ 請求書プレビュー・座標</button>
     <button class="mode-tab" onclick="switchMode('master', this)">⚙️ マスタ管理</button>
   </div>
 
-  <!-- 【ビュー1】：入力画面（上部に入力、下部に買受サマリー） -->
   <div id="view-input" class="section-view active">
     <div class="input-main-container">
       
-      <!-- カテゴリタブ -->
       <div class="tabs" style="display:flex; gap:6px; overflow-x:auto;">
         <button class="tab active" onclick="filterCategory('all', this)" style="background:#1976d2; color:white; border:none; padding:6px 12px; border-radius:15px; font-size:0.8rem; font-weight:bold;">すべて</button>
         <button class="tab" onclick="filterCategory('印紙', this)" style="background:#e0e0e0; border:none; padding:6px 12px; border-radius:15px; font-size:0.8rem; font-weight:bold;">収入印紙</button>
@@ -115,10 +127,8 @@
         <button class="tab" onclick="filterCategory('葉書', this)" style="background:#e0e0e0; border:none; padding:6px 12px; border-radius:15px; font-size:0.8rem; font-weight:bold;">葉書・レターパック</button>
       </div>
 
-      <!-- アイテム一覧リスト -->
       <div id="items-container"></div>
 
-      <!-- 下部に買受サマリー -->
       <div class="summary-card">
         <div class="summary-title">📢 発注・買受サマリー（最低在庫割れ）</div>
         <div class="summary-grid">
@@ -137,7 +147,6 @@
     </div>
   </div>
 
-  <!-- 【ビュー2】：プレビュー画面＆座標調整画面 -->
   <div id="view-preview" class="section-view">
     <div class="preview-card">
       <div class="preview-title" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -150,40 +159,40 @@
       <button class="btn-action-main" onclick="downloadFormImage()">📥 完成した請求書画像をダウンロード</button>
     </div>
 
-    <!-- 座標個別調整マネージャー -->
     <div class="coord-manager">
-      <h3 style="font-size:0.95rem; color:#e65100; margin-bottom:6px;">📍 各アイテムの印刷座標（X・Y）個別調整</h3>
+      <h3 style="font-size:0.95rem; color:#e65100; margin-bottom:6px;">📍 印刷項目・座標（X・Y）個別調整</h3>
       <div id="coord-rows-container"></div>
     </div>
   </div>
 
-  <!-- 【ビュー3】：マスタ管理画面（店舗マスタ・商品マスタ） -->
   <div id="view-master" class="section-view">
     
     <div class="master-card">
-      <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;">🏪 店舗マスタ設定（複数店舗・端末連携用）</h3>
+      <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;">🏪 店舗マスタ追加・編集・削除</h3>
       <div class="master-form">
-        <input type="text" id="storeName" value="ファミリーマート博多住吉通り店" placeholder="店舗名">
-        <input type="text" id="storeAddress" value="福岡市博多区博多駅前4丁目3-2" placeholder="住所">
-        <input type="text" id="storeManager" value="浦田 恭平" placeholder="管理者名">
-        <button class="btn-add-master" style="background:#1976d2;" onclick="alert('店舗情報を保存しました！ (スプレッドシート連携拡張対応)')">店舗情報を保存</button>
+        <input type="hidden" id="editStoreId" value="">
+        <input type="text" id="storeNameInput" placeholder="店舗名 (例: 博多住吉通り店)" style="grid-column: span 2;">
+        <button class="btn-submit-master" id="storeSubmitBtn" onclick="saveStoreMaster()">店舗を追加する</button>
       </div>
+      <div id="store-list-container" style="margin-top: 10px;"></div>
     </div>
 
     <div class="master-card">
-      <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;">📦 商品マスタ追加・編集</h3>
+      <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;">📦 商品マスタ追加・編集・削除</h3>
       <div class="master-form">
-        <input type="text" id="newProdName" placeholder="商品名 (例: 50円切手)">
-        <input type="number" id="newProdPrice" placeholder="価格 (円)">
-        <input type="number" id="newProdMin" placeholder="最低在庫数">
-        <input type="number" id="newProdUnit" placeholder="買受単位">
-        <select id="newProdCat">
+        <input type="hidden" id="editProdId" value="">
+        <input type="text" id="prodNameInput" placeholder="商品名 (例: 50円切手)">
+        <input type="number" id="prodPriceInput" placeholder="価格 (円)">
+        <input type="number" id="prodMinInput" placeholder="最低在庫数">
+        <input type="number" id="prodUnitInput" placeholder="買受単位">
+        <select id="prodCatInput" style="grid-column: span 2;">
           <option value="切手">切手</option>
-          <option value="印紙">印紙</option>
+          <option value="印紙">収入印紙</option>
           <option value="葉書">葉書・レターパック</option>
         </select>
-        <button class="btn-add-master" onclick="addNewProduct()">商品を追加する</button>
+        <button class="btn-submit-master" id="prodSubmitBtn" onclick="saveProductMaster()">商品を追加する</button>
       </div>
+      <div id="product-list-container" style="margin-top: 10px;"></div>
     </div>
 
   </div>
@@ -191,7 +200,13 @@
 </div>
 
 <script>
-// 商品マスタデータ（100枚は「100枚(1シート)」として管理、各座標x,yを保持）
+// 店舗マスタデータ（デフォルト1号店）
+let storesData = [
+  { id: 1, name: "ファミリーマート博多住吉通り店" }
+];
+let currentStoreId = 1;
+
+// 商品マスタデータ（x, y座標付き）
 let masterData = [
   { id: 1, name: "収入印紙", price: 200, minStock: 100, unit: 100, category: "印紙", hasSheets: true, hidden: false, x: 200, y: 750 },
   { id: 2, name: "10円切手", price: 10, minStock: 100, unit: 100, category: "切手", hasSheets: true, hidden: false, x: 200, y: 350 },
@@ -208,7 +223,19 @@ let masterData = [
   { id: 13, name: "レターパックプラス", price: 600, minStock: 20, unit: 20, category: "葉書", hasSheets: false, hidden: false, x: 700, y: 550 }
 ];
 
-let inputState = {};
+// サマリー5項目 ＋ 作成年月日 ＋ オーイヤー(オーナー)印 の特殊アイテム座標管理
+let specialPrintData = [
+  { key: "sum_stamps", name: "【サマリー】郵便切手類 合計金額", x: 700, y: 1100 },
+  { key: "sum_postcards", name: "【サマリー】葉書・レターパック 合計金額", x: 700, y: 1140 },
+  { key: "sum_revenue", name: "【サマリー】収入印紙 合計金額", x: 700, y: 1180 },
+  { key: "sum_postal_total", name: "【サマリー】切手等 計（印紙除く）", x: 700, y: 1220 },
+  { key: "sum_total_cash", name: "【サマリー】レジ出金額(商品前渡金 総額)", x: 700, y: 1270 },
+  { key: "print_date", name: "【記入欄】作成年月日 (例: 2026年3月〇日)", x: 250, y: 220 },
+  { key: "owner_seal", name: "【記入欄】オーナー印 (店長印)", x: 900, y: 220 }
+];
+
+// 店舗ごとの在庫状態を保持 { storeId: { prodId: { sheet100: 0, s1: 0 ... s10: 0 } } }
+let storeInventories = {};
 let bgImage = null;
 
 function preloadBackground() {
@@ -218,11 +245,19 @@ function preloadBackground() {
   bgImage.onerror = () => { bgImage = null; updateCanvas(); };
 }
 
+function initStoreInventory(storeId) {
+  if (!storeInventories[storeId]) {
+    storeInventories[storeId] = {};
+    masterData.forEach(item => {
+      storeInventories[storeId][item.id] = { sheet100: 0 };
+      for (let i = 1; i <= 10; i++) storeInventories[storeId][item.id]['s' + i] = 0;
+    });
+  }
+}
+
 function initData() {
-  masterData.forEach(item => {
-    inputState[item.id] = { sheet100: 0 };
-    for (let i = 1; i <= 10; i++) inputState[item.id]['s' + i] = 0;
-  });
+  initStoreInventory(currentStoreId);
+  renderStoreSelector();
 }
 
 function switchMode(mode, btn) {
@@ -231,10 +266,38 @@ function switchMode(mode, btn) {
   
   if (btn) btn.classList.add('active');
   document.getElementById('view-' + mode).classList.add('active');
-  if (mode === 'preview') updateCanvas();
+  if (mode === 'preview') {
+    updateCanvas();
+    renderCoordManager();
+  }
+  if (mode === 'master') {
+    renderStoreMasterList();
+    renderProductMasterList();
+  }
 }
 
-// 英語でのポップアップ確認付き非表示切り替え
+function renderStoreSelector() {
+  const sel = document.getElementById('storeSelector');
+  sel.innerHTML = '';
+  storesData.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.innerText = s.name;
+    if (s.id === currentStoreId) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  const cur = storesData.find(s => s.id === currentStoreId);
+  document.getElementById('currentStoreDisplay').innerText = cur ? cur.name : "";
+}
+
+function changeCurrentStore(id) {
+  currentStoreId = parseInt(id, 10);
+  initStoreInventory(currentStoreId);
+  renderStoreSelector();
+  renderItems(currentCategory);
+}
+
+// 英語でのポップアップ確認付き非表示切り替え (折りたたみ＆黒ハイライト用クラス適用)
 function toggleHideItem(id) {
   const item = masterData.find(i => i.id === id);
   if (!item) return;
@@ -255,20 +318,26 @@ function renderItems(filterCat = 'all') {
   const container = document.getElementById('items-container');
   container.innerHTML = '';
 
+  initStoreInventory(currentStoreId);
+  const inv = storeInventories[currentStoreId];
+
   masterData.forEach(item => {
     if (filterCat !== 'all' && item.category !== filterCat) return;
+    if (!inv[item.id]) {
+      inv[item.id] = { sheet100: 0 };
+      for (let i = 1; i <= 10; i++) inv[item.id]['s' + i] = 0;
+    }
 
-    let totalStock = (inputState[item.id].sheet100 || 0) * 100;
-    for (let i = 1; i <= 10; i++) totalStock += (inputState[item.id]['s' + i] || 0) * i;
+    let totalStock = (inv[item.id].sheet100 || 0) * 100;
+    for (let i = 1; i <= 10; i++) totalStock += (inv[item.id]['s' + i] || 0) * i;
 
     const isShortage = item.minStock > 0 && totalStock < item.minStock;
     const card = document.createElement('div');
     card.className = `item-card ${item.hidden ? 'hidden-item' : ''}`;
 
     let slotsHtml = '';
-    // 100枚束 -> 100枚(1シート)に表記変更
     if (item.hasSheets) {
-      const val = inputState[item.id].sheet100;
+      const val = inv[item.id].sheet100;
       slotsHtml += `
         <div class="slot-box" style="background:#e3f2fd; border-color:#bbdefb;">
           <div class="slot-label" style="font-weight:bold; color:#1565c0;">100枚(1ｼｰﾄ)</div>
@@ -281,9 +350,8 @@ function renderItems(filterCat = 'all') {
       `;
     }
 
-    // 1〜10枚セットの在庫増減入力ボタンを段落を変えずに横に配置 (horizontal-stepper-container)
     for (let i = 1; i <= 10; i++) {
-      const val = inputState[item.id]['s' + i];
+      const val = inv[item.id]['s' + i];
       const showWarn = (i <= 5 && val <= 1) || (i > 5 && val < 1);
       slotsHtml += `
         <div class="slot-box">
@@ -302,9 +370,9 @@ function renderItems(filterCat = 'all') {
         <div class="item-title-area">
           <span class="item-name">${item.name}</span>
           <span class="item-price">¥${item.price}</span>
-          <button class="btn-hide-toggle" onclick="toggleHideItem(${item.id})">${item.hidden ? '非表示中 (表示する)' : '表示中 (非表示にする)'}</button>
+          <button class="btn-hide-toggle" onclick="toggleHideItem(${item.id})">${item.hidden ? 'Show' : 'Hide'}</button>
         </div>
-        <span class="stock-badge ${isShortage ? 'badge-need' : 'badge-ok'}" style="font-size:0.75rem; padding:3px 6px; border-radius:4px;">
+        <span class="stock-badge ${isShortage && !item.hidden ? 'badge-need' : 'badge-ok'}" style="font-size:0.75rem; padding:3px 6px; border-radius:4px;">
           在庫: ${totalStock}枚
         </span>
       </div>
@@ -320,13 +388,15 @@ function renderItems(filterCat = 'all') {
 }
 
 function changeCount(itemId, key, delta) {
-  const current = inputState[itemId][key] || 0;
-  inputState[itemId][key] = Math.max(0, current + delta);
+  const inv = storeInventories[currentStoreId];
+  const current = inv[itemId][key] || 0;
+  inv[itemId][key] = Math.max(0, current + delta);
   renderItems(currentCategory);
 }
 
 function setCount(itemId, key, value) {
-  inputState[itemId][key] = Math.max(0, parseInt(value, 10) || 0);
+  const inv = storeInventories[currentStoreId];
+  inv[itemId][key] = Math.max(0, parseInt(value, 10) || 0);
   renderItems(currentCategory);
 }
 
@@ -344,12 +414,15 @@ function filterCategory(cat, btn) {
   renderItems(cat);
 }
 
-function calcSummary() {
+function getSummaryValues() {
+  initStoreInventory(currentStoreId);
+  const inv = storeInventories[currentStoreId];
   let stampAmt = 0, postAmt = 0, revAmt = 0;
+
   masterData.forEach(item => {
     if (item.hidden) return;
-    let totalStock = (inputState[item.id].sheet100 || 0) * 100;
-    for (let i = 1; i <= 10; i++) totalStock += (inputState[item.id]['s' + i] || 0) * i;
+    let totalStock = (inv[item.id].sheet100 || 0) * 100;
+    for (let i = 1; i <= 10; i++) totalStock += (inv[item.id]['s' + i] || 0) * i;
 
     if (item.minStock > 0 && totalStock < item.minStock) {
       const amt = item.unit * item.price;
@@ -361,18 +434,24 @@ function calcSummary() {
 
   const postalTotal = stampAmt + postAmt;
   const totalCash = postalTotal + revAmt;
-
-  document.getElementById('sum-stamps').innerText = `${stampAmt.toLocaleString()} 円`;
-  document.getElementById('sum-postcards').innerText = `${postAmt.toLocaleString()} 円`;
-  document.getElementById('sum-revenue').innerText = `${revAmt.toLocaleString()} 円`;
-  document.getElementById('sum-postal-total').innerText = `${postalTotal.toLocaleString()} 円`;
-  document.getElementById('sum-total-cash').innerText = `${totalCash.toLocaleString()} 円`;
+  return { stampAmt, postAmt, revAmt, postalTotal, totalCash };
 }
 
+function calcSummary() {
+  const vals = getSummaryValues();
+  document.getElementById('sum-stamps').innerText = `${vals.stampAmt.toLocaleString()} 円`;
+  document.getElementById('sum-postcards').innerText = `${vals.postAmt.toLocaleString()} 円`;
+  document.getElementById('sum-revenue').innerText = `${vals.revAmt.toLocaleString()} 円`;
+  document.getElementById('sum-postal-total').innerText = `${vals.postalTotal.toLocaleString()} 円`;
+  document.getElementById('sum-total-cash').innerText = `${vals.totalCash.toLocaleString()} 円`;
+}
+
+// 座標マネージャー（商品 ＋ サマリー5種 ＋ 日付・印）
 function renderCoordManager() {
   const container = document.getElementById('coord-rows-container');
   container.innerHTML = '';
 
+  // 1. 商品座標
   masterData.forEach(item => {
     const row = document.createElement('div');
     row.className = 'coord-item-row';
@@ -389,6 +468,25 @@ function renderCoordManager() {
     `;
     container.appendChild(row);
   });
+
+  // 2. 特殊項目（サマリー5種 ＋ 日付・印）座標
+  specialPrintData.forEach(sp => {
+    const row = document.createElement('div');
+    row.className = 'coord-item-row';
+    row.style.background = '#e8f5e9';
+    row.innerHTML = `
+      <b>${sp.name}</b>
+      <div class="coord-control-group">
+        X:<input type="range" min="0" max="1200" value="${sp.x}" oninput="updateSpecialCoord('${sp.key}', 'x', this.value)">
+        <span id="coord_x_${sp.key}" style="width:35px; text-align:right;">${sp.x}</span>px
+      </div>
+      <div class="coord-control-group">
+        Y:<input type="range" min="0" max="1700" value="${sp.y}" oninput="updateSpecialCoord('${sp.key}', 'y', this.value)">
+        <span id="coord_y_${sp.key}" style="width:35px; text-align:right;">${sp.y}</span>px
+      </div>
+    `;
+    container.appendChild(row);
+  });
 }
 
 function updateItemCoord(id, axis, val) {
@@ -400,33 +498,151 @@ function updateItemCoord(id, axis, val) {
   }
 }
 
-function addNewProduct() {
-  const name = document.getElementById('newProdName').value;
-  const price = parseInt(document.getElementById('newProdPrice').value, 10);
-  const minStock = parseInt(document.getElementById('newProdMin').value, 10);
-  const unit = parseInt(document.getElementById('newProdUnit').value, 10);
-  const category = document.getElementById('newProdCat').value;
-
-  if (!name || isNaN(price)) {
-    alert("商品名と価格を正しく入力してください。");
-    return;
+function updateSpecialCoord(key, axis, val) {
+  const sp = specialPrintData.find(s => s.key === key);
+  if (sp) {
+    sp[axis] = parseInt(val, 10);
+    document.getElementById(`coord_${axis}_${key}`).innerText = val;
+    updateCanvas();
   }
-
-  const newId = masterData.length > 0 ? Math.max(...masterData.map(i => i.id)) + 1 : 1;
-  masterData.push({
-    id: newId, name, price, minStock: isNaN(minStock) ? 0 : minStock, unit: isNaN(unit) ? 10 : unit, category, hasSheets: true, hidden: false, x: 200, y: 600
-  });
-
-  inputState[newId] = { sheet100: 0 };
-  for (let i = 1; i <= 10; i++) inputState[newId]['s' + i] = 0;
-
-  alert(`商品「${name}」を追加しました！`);
-  document.getElementById('newProdName').value = '';
-  document.getElementById('newProdPrice').value = '';
-  renderItems(currentCategory);
-  renderCoordManager();
 }
 
+// --- 店舗マスタ管理（追加・編集・削除） ---
+function renderStoreMasterList() {
+  const container = document.getElementById('store-list-container');
+  container.innerHTML = '';
+  storesData.forEach(s => {
+    const div = document.createElement('div');
+    div.className = 'master-list-item';
+    div.innerHTML = `
+      <span><b>${s.name}</b> (ID: ${s.id})</span>
+      <div>
+        <button class="btn-edit" onclick="editStore(${s.id})">編集</button>
+        <button class="btn-del" onclick="deleteStore(${s.id})">削除</button>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function saveStoreMaster() {
+  const idInput = document.getElementById('editStoreId').value;
+  const name = document.getElementById('storeNameInput').value;
+  if (!name) { alert("店舗名を入力してください。"); return; }
+
+  if (idInput) {
+    const s = storesData.find(st => st.id == idInput);
+    if (s) s.name = name;
+    document.getElementById('editStoreId').value = '';
+    document.getElementById('storeSubmitBtn').innerText = "店舗を追加する";
+  } else {
+    const newId = storesData.length > 0 ? Math.max(...storesData.map(s => s.id)) + 1 : 1;
+    storesData.push({ id: newId, name });
+  }
+
+  document.getElementById('storeNameInput').value = '';
+  renderStoreMasterList();
+  renderStoreSelector();
+  alert("店舗マスタを保存しました！");
+}
+
+function editStore(id) {
+  const s = storesData.find(st => st.id === id);
+  if (s) {
+    document.getElementById('editStoreId').value = s.id;
+    document.getElementById('storeNameInput').value = s.name;
+    document.getElementById('storeSubmitBtn').innerText = "店舗情報を更新";
+  }
+}
+
+function deleteStore(id) {
+  if (storesData.length <= 1) { alert("最後の店舗は削除できません。"); return; }
+  if (confirm("この店舗を削除しますか？")) {
+    storesData = storesData.filter(st => st.id !== id);
+    if (currentStoreId === id) currentStoreId = storesData[0].id;
+    renderStoreMasterList();
+    renderStoreSelector();
+    renderItems(currentCategory);
+  }
+}
+
+// --- 商品マスタ管理（追加・編集・削除） ---
+function renderProductMasterList() {
+  const container = document.getElementById('product-list-container');
+  container.innerHTML = '';
+  masterData.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'master-list-item';
+    div.innerHTML = `
+      <span><b>${p.name}</b> (¥${p.price} / ${p.category})</span>
+      <div>
+        <button class="btn-edit" onclick="editProduct(${p.id})">編集</button>
+        <button class="btn-del" onclick="deleteProduct(${p.id})">削除</button>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function saveProductMaster() {
+  const idInput = document.getElementById('editProdId').value;
+  const name = document.getElementById('prodNameInput').value;
+  const price = parseInt(document.getElementById('prodPriceInput').value, 10);
+  const minStock = parseInt(document.getElementById('prodMinInput').value, 10);
+  const unit = parseInt(document.getElementById('prodUnitInput').value, 10);
+  const category = document.getElementById('prodCatInput').value;
+
+  if (!name || isNaN(price)) { alert("商品名と価格を正しく入力してください。"); return; }
+
+  if (idInput) {
+    const p = masterData.find(prod => prod.id == idInput);
+    if (p) {
+      p.name = name; p.price = price; p.minStock = isNaN(minStock) ? 0 : minStock; p.unit = isNaN(unit) ? 10 : unit; p.category = category;
+    }
+    document.getElementById('editProdId').value = '';
+    document.getElementById('prodSubmitBtn').innerText = "商品を追加する";
+  } else {
+    const newId = masterData.length > 0 ? Math.max(...masterData.map(p => p.id)) + 1 : 1;
+    masterData.push({
+      id: newId, name, price, minStock: isNaN(minStock) ? 0 : minStock, unit: isNaN(unit) ? 10 : unit, category, hasSheets: true, hidden: false, x: 200, y: 600
+    });
+    Object.keys(storeInventories).forEach(sId => {
+      storeInventories[sId][newId] = { sheet100: 0 };
+      for (let i = 1; i <= 10; i++) storeInventories[sId][newId]['s' + i] = 0;
+    });
+  }
+
+  document.getElementById('prodNameInput').value = '';
+  document.getElementById('prodPriceInput').value = '';
+  document.getElementById('prodMinInput').value = '';
+  document.getElementById('prodUnitInput').value = '';
+  renderProductMasterList();
+  renderItems(currentCategory);
+  alert("商品マスタを保存しました！");
+}
+
+function editProduct(id) {
+  const p = masterData.find(prod => prod.id === id);
+  if (p) {
+    document.getElementById('editProdId').value = p.id;
+    document.getElementById('prodNameInput').value = p.name;
+    document.getElementById('prodPriceInput').value = p.price;
+    document.getElementById('prodMinInput').value = p.minStock;
+    document.getElementById('prodUnitInput').value = p.unit;
+    document.getElementById('prodCatInput').value = p.category;
+    document.getElementById('prodSubmitBtn').innerText = "商品を更新";
+  }
+}
+
+function deleteProduct(id) {
+  if (confirm("この商品を削除しますか？")) {
+    masterData = masterData.filter(p => p.id !== id);
+    renderProductMasterList();
+    renderItems(currentCategory);
+  }
+}
+
+// --- キャンバス描画（商品赤字 ＋ サマリー5種 ＋ 日付・印） ---
 function updateCanvas() {
   const canvas = document.getElementById('formCanvas');
   const ctx = canvas.getContext('2d');
@@ -469,18 +685,41 @@ function updateCanvas() {
   }
 
   ctx.fillStyle = '#d32f2f';
-  ctx.font = 'bold 22px sans-serif';
+  ctx.font = 'bold 20px sans-serif';
 
+  initStoreInventory(currentStoreId);
+  const inv = storeInventories[currentStoreId];
+
+  // 1. 各商品の赤字描画
   masterData.forEach(item => {
     if (item.hidden) return;
-    let totalStock = (inputState[item.id].sheet100 || 0) * 100;
-    for (let i = 1; i <= 10; i++) totalStock += (inputState[item.id]['s' + i] || 0) * i;
+    let totalStock = (inv[item.id].sheet100 || 0) * 100;
+    for (let i = 1; i <= 10; i++) totalStock += (inv[item.id]['s' + i] || 0) * i;
 
     if (item.minStock > 0 && totalStock < item.minStock) {
       const qty = item.unit;
       const amt = qty * item.price;
       ctx.fillText(qty, item.x, item.y);
       ctx.fillText(amt, item.x + 110, item.y);
+    }
+  });
+
+  // 2. 買受サマリー5種 ＋ 日付 ＋ オーナー印の赤字描画
+  const summaryVals = getSummaryValues();
+  const summaryMap = {
+    sum_stamps: `${summaryVals.stampAmt.toLocaleString()} 円`,
+    sum_postcards: `${summaryVals.postAmt.toLocaleString()} 円`,
+    sum_revenue: `${summaryVals.revAmt.toLocaleString()} 円`,
+    sum_postal_total: `${summaryVals.postalTotal.toLocaleString()} 円`,
+    sum_total_cash: `${summaryVals.totalCash.toLocaleString()} 円`,
+    print_date: new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' }),
+    owner_seal: "印"
+  };
+
+  specialPrintData.forEach(sp => {
+    const text = summaryMap[sp.key] || "";
+    if (text) {
+      ctx.fillText(text, sp.x, sp.y);
     }
   });
 }
@@ -503,7 +742,7 @@ function downloadFormImage() {
 
 function resetAllInputs() {
   if (confirm("入力した数値をすべてリセットしますか？")) {
-    initData();
+    initStoreInventory(currentStoreId);
     renderItems(currentCategory);
   }
 }
@@ -511,7 +750,6 @@ function resetAllInputs() {
 // 初期化実行
 initData();
 preloadBackground();
-renderCoordManager();
 renderItems('all');
 </script>
 
