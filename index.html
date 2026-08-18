@@ -1020,13 +1020,18 @@ function refreshPreviewCanvas() {
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   
-  // キャンバスを完全にクリア
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // 1. キャンバスの大きさを一度0にして、もう一度元のサイズに戻す
+  // これが最も強力に、古い描画データをメモリから完全に破棄する方法です
+  const w = canvas.width;
+  const h = canvas.height;
+  canvas.width = 0;
+  canvas.width = w;
+  canvas.height = h;
   
-  // 最新状態で再描画
+  // 2. 背景画像を再描画して、最新のデータで印字を描き直す
   updateCanvas();
   
-  alert("プレビューをリフレッシュしました！");
+  alert("プレビューを完全に初期化しました！");
 }
 
 // プレビュー描画
