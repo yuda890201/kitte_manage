@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>切手管理</title>
-  <!-- ホーム画面アイコン設定 -->
   <link rel="icon" type="image/png" href="kitte_manage.png">
   <link rel="apple-touch-icon" href="kitte_manage.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -12,17 +11,8 @@
 
   <style>
     :root {
-      --primary: #1976d2;
-      --accent: #e53935;
-      --bg: #f4f6f8;
-      --card-bg: #ffffff;
-      --text: #212121;
-      --text-sub: #666666;
-      --border: #e0e0e0;
-      --alert-bg: #ffebee;
-      --alert-text: #c62828;
-      --success-bg: #e8f5e9;
-      --success-text: #2e7d32;
+      --primary: #1976d2; --accent: #e53935; --bg: #f4f6f8;
+      --card-bg: #ffffff; --text: #212121; --text-sub: #666666; --border: #e0e0e0;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background: var(--bg); color: var(--text); padding-bottom: 90px; }
@@ -41,7 +31,6 @@
     .section-view.active { display: block; }
 
     .store-bar { background: #e3f2fd; border: 1px solid #bbdefb; padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; font-weight: bold; color: #0d47a1; }
-
     .input-main-container { display: flex; flex-direction: column; gap: 16px; }
 
     .summary-card { background: var(--card-bg); border-radius: 10px; padding: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid var(--accent); }
@@ -54,60 +43,46 @@
     .total-box .label { font-size: 0.8rem; color: #e65100; font-weight: bold; }
     .total-box .val { font-size: 1.35rem; font-weight: bold; color: #d84315; }
 
-    .item-card { background: var(--card-bg); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); transition: all 0.2s; }
-    .item-card.hidden-item { background: #212121; color: white; padding: 8px 14px; }
-    .item-card.hidden-item .item-price, .item-card.hidden-item .slot-box { display: none; }
-    .item-card.hidden-item .item-name { color: white; }
-    
+    .item-card { background: var(--card-bg); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
     .item-header { display: flex; justify-content: space-between; align-items: center; }
     .item-title-area { display: flex; align-items: center; gap: 8px; }
     .item-name { font-size: 1rem; font-weight: bold; }
     .item-price { font-size: 0.85rem; color: var(--text-sub); }
-    .btn-hide-toggle { background: #eee; border: 1px solid #ccc; font-size: 0.75rem; padding: 3px 8px; border-radius: 4px; cursor: pointer; }
-    .item-card.hidden-item .btn-hide-toggle { background: #424242; color: white; border-color: #616161; }
-
+    
     .horizontal-stepper-container { display: flex; gap: 6px; overflow-x: auto; padding-top: 8px; }
     .slot-box { background: #fafafa; border: 1px solid var(--border); border-radius: 6px; padding: 6px; text-align: center; min-width: 75px; flex: 1; }
     .slot-label { font-size: 0.7rem; color: var(--text-sub); margin-bottom: 4px; white-space: nowrap; }
-    .slot-alert { color: var(--accent); font-weight: bold; font-size: 0.65rem; }
-
     .vertical-stepper { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-    .btn-step-v { width: 100%; height: 22px; border: 1px solid #ccc; background: #fff; border-radius: 3px; font-weight: bold; cursor: pointer; font-size: 0.8rem; line-height: 1; }
+    .btn-step-v { width: 100%; height: 22px; border: 1px solid #ccc; background: #fff; border-radius: 3px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
     .slot-input { width: 100%; height: 26px; text-align: center; font-size: 0.9rem; border: 1px solid #ccc; border-radius: 3px; font-weight: bold; }
 
     .preview-layout { display: flex; flex-direction: column; gap: 16px; }
     @media (min-width: 850px) {
       .preview-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
-      .preview-card { position: sticky; top: 70px; margin-bottom: 0 !important; }
+      .preview-card { position: sticky; top: 70px; }
     }
-
-    .preview-card { background: var(--card-bg); border-radius: 10px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid var(--primary); }
+    .preview-card { background: var(--card-bg); border-radius: 10px; padding: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid var(--primary); }
     .canvas-container { width: 100%; overflow: auto; max-height: 70vh; background: #eee; border-radius: 6px; text-align: center; padding: 8px; border: 1px solid #ccc; }
     canvas { background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     
     .coord-manager { background: white; border-radius: 10px; padding: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid #ff9800; }
     .coord-item-row { background: #fafafa; border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; margin-bottom: 6px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px; font-size: 0.8rem; }
-    .coord-item-row b { color: #333; width: 100%; margin-bottom: 2px; }
-    @media (min-width: 850px) {
-      .coord-item-row b { width: auto; flex: 1; margin-bottom: 0; }
-    }
+    .coord-item-row b { width: 100%; }
+    @media (min-width: 850px) { .coord-item-row b { width: auto; flex: 1; } }
     .coord-control-group { display: flex; align-items: center; gap: 4px; }
     .coord-control-group input[type="range"] { width: 70px; }
-    .btn-step-coord { background: #e0e0e0; border: 1px solid #ccc; width: 24px; height: 24px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
-    .btn-step-coord:active { background: #bdbdbd; }
+    .btn-step-coord { background: #e0e0e0; border: 1px solid #ccc; width: 24px; height: 24px; border-radius: 4px; font-weight: bold; cursor: pointer; }
 
     .master-card { background: white; border-radius: 10px; padding: 14px; margin-bottom: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid #4caf50; }
     .master-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
     .master-form input, .master-form select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; }
     .btn-submit-master { grid-column: span 2; background: #4caf50; color: white; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer; }
-    
     .master-list-item { display: flex; justify-content: space-between; align-items: center; background: #fafafa; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px; font-size: 0.85rem; }
     .btn-edit { background: #ff9800; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; }
     .btn-del { background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; }
 
     .btn-action-main { width: 100%; background: #c62828; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
     .btn-share { width: 100%; background: #00c300; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 8px; }
-    
     .sync-status { font-size: 0.75rem; color: #ffeb3b; margin-left: 8px; font-weight: normal; }
   </style>
 </head>
@@ -122,7 +97,6 @@
 
   <div class="store-bar">
     <span>🏪 現在の店舗: <span id="currentStoreDisplay" style="color:#1565c0;">1号店</span></span>
-    <span style="font-size:0.75rem; color:#666;">(※店舗変更はマスタ管理画面から)</span>
   </div>
 
   <div class="mode-tabs">
@@ -133,9 +107,8 @@
 
   <div id="view-input" class="section-view active">
     <div class="input-main-container">
-      
-      <div class="tabs" style="display:flex; gap:6px; overflow-x:auto;">
-        <button class="tab active" onclick="filterCategory('all', this)" style="background:#1976d2; color:white; border:none; padding:6px 12px; border-radius:15px; font-size:0.8rem; font-weight:bold;">すべて</button>
+      <div style="display:flex; gap:6px; overflow-x:auto;">
+        <button class="tab" onclick="filterCategory('all', this)" style="background:#1976d2; color:white; border:none; padding:6px 12px; border-radius:15px; font-size:0.8rem; font-weight:bold;">すべて</button>
         <button class="tab" onclick="filterCategory('印紙', this)" style="background:#e0e0e0; border:none; padding:6px 12px; border-radius:15px; font-size:0.8rem; font-weight:bold;">収入印紙</button>
         <button class="tab" onclick="filterCategory('切手', this)" style="background:#e0e0e0; border:none; padding:6px 12px; border-radius:15px; font-size:0.8rem; font-weight:bold;">切手類</button>
         <button class="tab" onclick="filterCategory('葉書', this)" style="background:#e0e0e0; border:none; padding:6px 12px; border-radius:15px; font-size:0.8rem; font-weight:bold;">葉書・レターパック</button>
@@ -158,54 +131,44 @@
         <button class="btn-action-main" onclick="switchMode('preview', document.querySelectorAll('.mode-tab')[1])">📄 請求書プレビュー・画像作成へ</button>
         <button class="btn-share" onclick="shareOrderSummary()">💬 買受依頼をワンタップ共有</button>
       </div>
-
     </div>
   </div>
 
   <div id="view-preview" class="section-view">
     <div class="preview-layout">
       <div class="preview-card">
-        <div class="preview-title" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
           <span style="font-weight:bold; color:var(--primary);">請求書 プレビュー</span>
-          <label style="font-size:0.85rem; cursor:pointer;"><input type="checkbox" id="gridToggle" checked onchange="updateCanvas()"> 高精度グリッド線</label>
+          <label style="font-size:0.85rem; cursor:pointer;"><input type="checkbox" id="gridToggle" checked onchange="updateCanvas()"> グリッド線</label>
         </div>
         
         <div style="background:#fff3e0; padding:8px 12px; border-radius:6px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; font-size:0.85rem;">
-          <span><b>間隔（スペース）調整:</b></span>
-          <div>
-            商品名〜数量: <select id="spaceNameQty" onchange="updateCanvas()" style="padding:2px 4px;">
-              <option value="    ">4個</option><option value="        " selected>8個</option><option value="            ">12個</option><option value="                ">16個</option>
-            </select>
-          </div>
-          <div>
-            数量〜金額: <select id="spaceQtyAmt" onchange="updateCanvas()" style="padding:2px 4px;">
-              <option value="    ">4個</option><option value="        " selected>8個</option><option value="            ">12個</option><option value="                ">16個</option>
-            </select>
-          </div>
+          <span><b>間隔調整:</b></span>
+          <div>名〜数: <select id="spaceNameQty" onchange="updateCanvas()"><option value="    ">狭</option><option value="        " selected>標準</option><option value="            ">広</option></select></div>
+          <div>数〜金: <select id="spaceQtyAmt" onchange="updateCanvas()"><option value="    ">狭</option><option value="        " selected>標準</option><option value="            ">広</option></select></div>
         </div>
 
         <div class="canvas-container">
           <canvas id="formCanvas"></canvas>
         </div>
-        <button class="btn-action-main" style="background:#0288d1; margin-top:8px;" onclick="refreshPreviewCanvas()">🔄 プレビューをリフレッシュ（再描画）</button>
-        <button class="btn-action-main" onclick="downloadFormImage()">📥 完成した請求書画像をダウンロード</button>
+        <button class="btn-action-main" style="background:#0288d1; margin-top:8px;" onclick="refreshPreviewCanvas()">🔄 プレビューをリフレッシュ</button>
+        <button class="btn-action-main" onclick="downloadFormImage()">📥 画像をダウンロード</button>
       </div>
 
       <div class="coord-manager">
-        <h3 style="font-size:0.95rem; color:#e65100; margin-bottom:6px;">📍 印刷項目・座標（← →微調整対応）</h3>
+        <h3 style="font-size:0.95rem; color:#e65100; margin-bottom:6px;">📍 印刷項目・座標調整</h3>
         <div id="coord-rows-container"></div>
       </div>
     </div>
   </div>
 
   <div id="view-master" class="section-view">
-    
     <div class="master-card">
-      <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;">🏪 店舗設定・切り替え</h3>
+      <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;">🏪 店舗設定</h3>
       <div class="master-form">
         <input type="hidden" id="editStoreId" value="">
-        <input type="text" id="storeNameInput" placeholder="店舗名 (例: 1号店)" style="grid-column: span 2;">
-        <button class="btn-submit-master" id="storeSubmitBtn" onclick="saveStoreMaster()">店舗を追加する</button>
+        <input type="text" id="storeNameInput" placeholder="店舗名" style="grid-column: span 2;">
+        <button class="btn-submit-master" onclick="saveStoreMaster()">店舗を追加</button>
       </div>
       <div id="store-list-container" style="margin-top: 10px;"></div>
     </div>
@@ -215,29 +178,14 @@
       <div class="master-form">
         <input type="hidden" id="editProdId" value="">
         <input type="text" id="prodNameInput" placeholder="商品名">
-        <input type="number" id="prodPriceInput" placeholder="価格 (円)">
-        <input type="number" id="prodMinInput" placeholder="最低在庫数">
+        <input type="number" id="prodPriceInput" placeholder="価格">
+        <input type="number" id="prodMinInput" placeholder="最低在庫">
         <input type="number" id="prodUnitInput" placeholder="買受単位">
-        <select id="prodCatInput" style="grid-column: span 2;">
-          <option value="切手">切手</option>
-          <option value="印紙">収入印紙</option>
-          <option value="葉書">葉書・レターパック</option>
-        </select>
-        <button class="btn-submit-master" id="prodSubmitBtn" onclick="saveProductMaster()">商品を追加する</button>
+        <select id="prodCatInput" style="grid-column: span 2;"><option value="切手">切手</option><option value="印紙">収入印紙</option><option value="葉書">葉書・レターパック</option></select>
+        <button class="btn-submit-master" onclick="saveProductMaster()">商品を追加</button>
       </div>
       <div id="product-list-container" style="margin-top: 10px;"></div>
     </div>
-
-    <div class="master-card" style="border-left-color: #2196f3;">
-      <h3 style="font-size:0.95rem; color:#1976d2; margin-bottom:4px;">✏️ プレビュー印字テキスト追加・削除</h3>
-      <div class="master-form">
-        <input type="text" id="customTextKey" placeholder="識別キー (例: note_text)">
-        <input type="text" id="customTextVal" placeholder="印字内容 (例: 備考欄メモ等)">
-        <button class="btn-submit-master" style="background:#1976d2;" onclick="addCustomTextItem()">印字テキストを追加する</button>
-      </div>
-      <div id="custom-text-list-container" style="margin-top: 10px;"></div>
-    </div>
-
   </div>
 
 </div>
@@ -245,10 +193,7 @@
 <script>
 const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzaqg7CwWgX5AOpUL-b8sARywAw_YAptFV63HX7CdByDNl5Ku46xCnc2CkKG0qazJK8/exec";
 
-let storesData = [
-  { id: 1, name: "1号店" }
-];
-
+let storesData = [{ id: 1, name: "1号店" }];
 let currentStoreId = parseInt(localStorage.getItem('kitte_current_store_id'), 10) || 1;
 
 let masterData = [
@@ -267,7 +212,6 @@ let masterData = [
   { id: 13, name: "レターパックプラス", price: 600, minStock: 20, unit: 20, category: "葉書", isLetterPack: true, x: 628, y: 338 }
 ];
 
-// 【デフォルトの正しい設計（更新版）】
 const defaultSpecialPrintData = [
   { key: "sum_stamps", name: "【サマリー】郵便切手類 合計", x: 406, y: 587 },
   { key: "sum_postcards", name: "【サマリー】葉書・レターパック 合計", x: 841, y: 587 },
@@ -283,38 +227,25 @@ let specialPrintData = JSON.parse(JSON.stringify(defaultSpecialPrintData));
 let storeDataMap = {};
 let bgImage = null;
 
-// 【重複や不要データを削除し、正しい初期データに統合するクリーンアップ関数】
 function sanitizeSpecialPrintData(loadedLayout) {
-  if (!loadedLayout || !Array.length) return JSON.parse(JSON.stringify(defaultSpecialPrintData));
-  
+  if (!loadedLayout || !loadedLayout.length) return JSON.parse(JSON.stringify(defaultSpecialPrintData));
   const cleanMap = new Map();
-  // デフォルトキーの枠をまず用意
   defaultSpecialPrintData.forEach(def => cleanMap.set(def.key, { ...def }));
-  
-  // クラウド/キャッシュのデータをマージ（重複があれば上書きされて最新の座標が残る）
   loadedLayout.forEach(item => {
     if (cleanMap.has(item.key)) {
       cleanMap.get(item.key).x = item.x;
       cleanMap.get(item.key).y = item.y;
       if (item.editableText !== undefined) cleanMap.get(item.key).editableText = item.editableText;
     } else {
-      // カスタムで追加されたテキストキーはそのまま残す
       cleanMap.set(item.key, item);
     }
   });
-
   return Array.from(cleanMap.values());
 }
 
 function saveToLocalStorage() {
   try {
-    const data = {
-      stores: storesData,
-      products: masterData,
-      layout: specialPrintData,
-      inventory: storeDataMap,
-      storeId: currentStoreId
-    };
+    const data = { stores: storesData, products: masterData, layout: specialPrintData, inventory: storeDataMap, storeId: currentStoreId };
     localStorage.setItem('kitte_app_cache', JSON.stringify(data));
   } catch(e) {}
 }
@@ -328,7 +259,6 @@ function loadFromLocalStorage() {
       if (parsed.products) masterData = parsed.products;
       if (parsed.inventory) storeDataMap = parsed.inventory;
       if (parsed.storeId) currentStoreId = parsed.storeId;
-      // ロード時に必ずクリーンアップを通す
       if (parsed.layout) specialPrintData = sanitizeSpecialPrintData(parsed.layout);
       return true;
     }
@@ -342,23 +272,17 @@ async function loadFromCloud() {
     initStoreData(currentStoreId);
     updateStoreDisplay();
     renderItems(currentCategory);
-    setSyncStatus("(オフラインキャッシュ表示中)");
+    setSyncStatus("(オフラインキャッシュ)");
   }
 
-  if (GAS_API_URL.includes("YOUR_GAS_WEB_APP_URL")) return;
-  setSyncStatus("(クラウド同期中...)");
+  if (!GAS_API_URL || GAS_API_URL.includes("YOUR_GAS_WEB_APP_URL")) return;
+  setSyncStatus("(同期中...)");
   try {
-    const res = await fetch(GAS_API_URL);
+    const res = await fetch(GAS_API_URL, { mode: 'cors' });
     const json = await res.json();
-    
     if (json.stores && json.stores.length > 0) storesData = json.stores;
     if (json.products && json.products.length > 0) masterData = json.products;
-    
-    // クラウドから取得したレイアウトもクリーンアップを通す
-    if (json.layout && json.layout.length > 0) {
-      specialPrintData = sanitizeSpecialPrintData(json.layout);
-    }
-    
+    if (json.layout && json.layout.length > 0) specialPrintData = sanitizeSpecialPrintData(json.layout);
     if (json.inventory && json.inventory.length > 0) {
       storeDataMap = {};
       json.inventory.forEach(inv => {
@@ -366,70 +290,44 @@ async function loadFromCloud() {
         try {
           const parsed = JSON.parse(inv.dataJson);
           storeDataMap[inv.storeId].inventory[inv.productId] = parsed.inv;
-          if (parsed.hidden) {
-            storeDataMap[inv.storeId].hiddenItems[inv.productId] = true;
-          }
+          if (parsed.hidden) storeDataMap[inv.storeId].hiddenItems[inv.productId] = true;
         } catch(e) {}
       });
     }
     saveToLocalStorage();
-    setSyncStatus("(クラウド同期完了)");
+    setSyncStatus("(同期完了)");
     initStoreData(currentStoreId);
     updateStoreDisplay();
     renderItems(currentCategory);
   } catch(e) {
-    setSyncStatus("(オフライン稼働中)");
+    setSyncStatus("(オフライン稼働)");
   }
 }
 
 async function syncWithCloud() {
   saveToLocalStorage();
-  if (GAS_API_URL.includes("YOUR_GAS_WEB_APP_URL")) {
-    alert("ローカルに保存しました。(GAS_API_URL未設定)");
+  if (!GAS_API_URL || GAS_API_URL.includes("YOUR_GAS_WEB_APP_URL")) {
     setSyncStatus("(ローカル保存)");
     return;
   }
-  setSyncStatus("(クラウド保存中...)");
-  
+  setSyncStatus("(保存中...)");
   let inventoryList = [];
   Object.keys(storeDataMap).forEach(sId => {
     const sData = storeDataMap[sId];
     const allProdIds = new Set([...Object.keys(sData.inventory), ...Object.keys(sData.hiddenItems)]);
     allProdIds.forEach(pId => {
-      inventoryList.push({
-        storeId: sId,
-        productId: pId,
-        dataJson: JSON.stringify({
-          inv: sData.inventory[pId] || {},
-          hidden: sData.hiddenItems[pId] || false
-        })
-      });
+      inventoryList.push({ storeId: sId, productId: pId, dataJson: JSON.stringify({ inv: sData.inventory[pId] || {}, hidden: sData.hiddenItems[pId] || false }) });
     });
   });
 
-  // 保存前にもう一度クリーンアップしてゴミデータ送信を防ぐ
   specialPrintData = sanitizeSpecialPrintData(specialPrintData);
-
-  const payload = {
-    stores: storesData,
-    products: masterData,
-    inventory: inventoryList,
-    layout: specialPrintData
-  };
+  const payload = { stores: storesData, products: masterData, inventory: inventoryList, layout: specialPrintData };
 
   try {
-    const res = await fetch(GAS_API_URL, {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
-    const json = await res.json();
-    if (json.status === "success") {
-      setSyncStatus("(クラウド保存完了)");
-    } else {
-      setSyncStatus("(保存エラー)");
-    }
+    await fetch(GAS_API_URL, { method: "POST", mode: 'no-cors', body: JSON.stringify(payload) });
+    setSyncStatus("(クラウド保存完了)");
   } catch(e) {
-    setSyncStatus("(通信エラー・ローカル保存済)");
+    setSyncStatus("(通信エラー)");
   }
 }
 
@@ -441,106 +339,68 @@ function setSyncStatus(txt) {
 let saveTimer = null;
 function triggerAutoSave() {
   saveToLocalStorage();
-  setSyncStatus("(変更有・保存待ち)");
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
-    syncWithCloud();
-  }, 2000);
+  saveTimer = setTimeout(syncWithCloud, 2000);
 }
 
 function preloadBackground() {
   bgImage = new Image();
   bgImage.src = 'form_base.png';
-  bgImage.onload = () => { updateCanvas(); };
+  bgImage.onload = () => updateCanvas();
   bgImage.onerror = () => { bgImage = null; updateCanvas(); };
 }
 
 function initStoreData(storeId) {
-  if (!storeDataMap[storeId]) {
-    storeDataMap[storeId] = { inventory: {}, hiddenItems: {} };
-  }
+  if (!storeDataMap[storeId]) storeDataMap[storeId] = { inventory: {}, hiddenItems: {} };
   masterData.forEach(item => {
     if (!storeDataMap[storeId].inventory[item.id]) {
       if (item.isLetterPack) {
         storeDataMap[storeId].inventory[item.id] = { single: 0, bundle20: 0 };
-      } else if (item.hasSheets) {
-        storeDataMap[storeId].inventory[item.id] = { sheet100: 0 };
-        for (let i = 1; i <= 10; i++) storeDataMap[storeId].inventory[item.id]['s' + i] = 0;
       } else {
-        storeDataMap[storeId].inventory[item.id] = {};
+        storeDataMap[storeId].inventory[item.id] = { sheet100: 0 };
         for (let i = 1; i <= 10; i++) storeDataMap[storeId].inventory[item.id]['s' + i] = 0;
       }
     }
   });
 }
 
-function initData() {
-  loadFromCloud();
-}
-
 function switchMode(mode, btn) {
   document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.section-view').forEach(v => v.classList.remove('active'));
-  
   if (btn) btn.classList.add('active');
-  document.getElementById('view-' + mode).classList.add('active');
-  if (mode === 'preview') {
-    updateCanvas();
-    renderCoordManager();
-  }
-  if (mode === 'master') {
-    renderStoreMasterList();
-    renderProductMasterList();
-    renderCustomTextList();
-  }
+  const target = document.getElementById('view-' + mode);
+  if (target) target.classList.add('active');
+  if (mode === 'preview') { updateCanvas(); renderCoordManager(); }
+  if (mode === 'master') { renderStoreMasterList(); renderProductMasterList(); }
 }
 
 function updateStoreDisplay() {
   const cur = storesData.find(s => s.id === currentStoreId) || storesData[0];
   if (cur) {
     currentStoreId = cur.id;
-    document.getElementById('currentStoreDisplay').innerText = cur.name;
+    const disp = document.getElementById('currentStoreDisplay');
+    if (disp) disp.innerText = cur.name;
     localStorage.setItem('kitte_current_store_id', currentStoreId);
   }
 }
 
-function selectActiveStore(id) {
-  currentStoreId = parseInt(id, 10);
-  initStoreData(currentStoreId);
-  updateStoreDisplay();
-  renderStoreMasterList();
+let currentCategory = 'all';
+function filterCategory(cat, btn) {
+  currentCategory = cat;
   renderItems(currentCategory);
-  alert(`店舗を「${document.getElementById('currentStoreDisplay').innerText}」に切り替えました。`);
-}
-
-function toggleHideItem(id) {
-  initStoreData(currentStoreId);
-  const hiddenMap = storeDataMap[currentStoreId].hiddenItems;
-  const isCurrentlyHidden = !!hiddenMap[id];
-
-  const action = isCurrentlyHidden ? "show" : "hide";
-  const msg = action === "hide" 
-    ? "Are you sure you want to hide this item?" 
-    : "Are you sure you want to show this item again?";
-
-  if (confirm(msg)) {
-    hiddenMap[id] = !isCurrentlyHidden;
-    renderItems(currentCategory);
-    triggerAutoSave();
-  }
 }
 
 function renderItems(filterCat = 'all') {
   const container = document.getElementById('items-container');
   if (!container) return;
   container.innerHTML = '';
-
   initStoreData(currentStoreId);
   const sData = storeDataMap[currentStoreId];
 
   masterData.forEach(item => {
     if (filterCat !== 'all' && item.category !== filterCat) return;
     const isHidden = !!sData.hiddenItems[item.id];
+    if (isHidden) return;
     const inv = sData.inventory[item.id];
 
     let totalStock = 0;
@@ -551,82 +411,29 @@ function renderItems(filterCat = 'all') {
       for (let i = 1; i <= 10; i++) totalStock += (inv['s' + i] || 0) * i;
     }
 
-    const isShortage = item.minStock > 0 && totalStock < item.minStock;
     const card = document.createElement('div');
-    card.className = `item-card ${isHidden ? 'hidden-item' : ''}`;
+    card.className = 'item-card';
 
     let slotsHtml = '';
     if (item.isLetterPack) {
-      const singleVal = inv.single || 0;
-      const bundleVal = inv.bundle20 || 0;
-      slotsHtml += `
-        <div class="slot-box" style="background:#e3f2fd; border-color:#bbdefb;">
-          <div class="slot-label" style="font-weight:bold; color:#1565c0;">バラ (1枚)</div>
-          <div class="vertical-stepper">
-            <button class="btn-step-v" onclick="changeCountLP(${item.id}, 'single', 1)">▲</button>
-            <input type="number" min="0" class="slot-input" value="${singleVal}" onchange="setCountLP(${item.id}, 'single', this.value)">
-            <button class="btn-step-v" onclick="changeCountLP(${item.id}, 'single', -1)">▼</button>
-          </div>
-        </div>
-        <div class="slot-box" style="background:#e8f5e9; border-color:#c8e6c9;">
-          <div class="slot-label" style="font-weight:bold; color:#2e7d32;">1束 (20枚)</div>
-          <div class="vertical-stepper">
-            <button class="btn-step-v" onclick="changeCountLP(${item.id}, 'bundle20', 1)">▲</button>
-            <input type="number" min="0" class="slot-input" value="${bundleVal}" onchange="setCountLP(${item.id}, 'bundle20', this.value)">
-            <button class="btn-step-v" onclick="changeCountLP(${item.id}, 'bundle20', -1)">▼</button>
-          </div>
-        </div>
-      `;
+      slotsHtml += `<div class="slot-box"><div class="slot-label">バラ</div><div class="vertical-stepper"><button class="btn-step-v" onclick="changeCount(${item.id}, 'single', 1)">▲</button><input type="number" class="slot-input" value="${inv.single || 0}" onchange="setCount(${item.id}, 'single', this.value)"><button class="btn-step-v" onclick="changeCount(${item.id}, 'single', -1)">▼</button></div></div>`;
+      slotsHtml += `<div class="slot-box"><div class="slot-label">1束(20)</div><div class="vertical-stepper"><button class="btn-step-v" onclick="changeCount(${item.id}, 'bundle20', 1)">▲</button><input type="number" class="slot-input" value="${inv.bundle20 || 0}" onchange="setCount(${item.id}, 'bundle20', this.value)"><button class="btn-step-v" onclick="changeCount(${item.id}, 'bundle20', -1)">▼</button></div></div>`;
     } else {
-      if (item.hasSheets) {
-        const val = inv.sheet100;
-        slotsHtml += `
-          <div class="slot-box" style="background:#e3f2fd; border-color:#bbdefb;">
-            <div class="slot-label" style="font-weight:bold; color:#1565c0;">100枚(1ｼｰﾄ)</div>
-            <div class="vertical-stepper">
-              <button class="btn-step-v" onclick="changeCount(${item.id}, 'sheet100', 1)">▲</button>
-              <input type="number" min="0" class="slot-input" value="${val}" onchange="setCount(${item.id}, 'sheet100', this.value)">
-              <button class="btn-step-v" onclick="changeCount(${item.id}, 'sheet100', -1)">▼</button>
-            </div>
-          </div>
-        `;
-      }
-
+      slotsHtml += `<div class="slot-box"><div class="slot-label">100枚</div><div class="vertical-stepper"><button class="btn-step-v" onclick="changeCount(${item.id}, 'sheet100', 1)">▲</button><input type="number" class="slot-input" value="${inv.sheet100 || 0}" onchange="setCount(${item.id}, 'sheet100', this.value)"><button class="btn-step-v" onclick="changeCount(${item.id}, 'sheet100', -1)">▼</button></div></div>`;
       for (let i = 1; i <= 10; i++) {
-        const val = inv['s' + i];
-        const showWarn = (i <= 5 && val <= 1) || (i > 5 && val < 1);
-        slotsHtml += `
-          <div class="slot-box">
-            <div class="slot-label">${i}枚 ${showWarn ? '<span class="slot-alert">補充!</span>' : ''}</div>
-            <div class="vertical-stepper">
-              <button class="btn-step-v" onclick="changeCount(${item.id}, 's${i}', 1)">▲</button>
-              <input type="number" min="0" class="slot-input" value="${val}" onchange="setCount(${item.id}, 's${i}', this.value)">
-              <button class="btn-step-v" onclick="changeCount(${item.id}, 's${i}', -1)">▼</button>
-            </div>
-          </div>
-        `;
+        slotsHtml += `<div class="slot-box"><div class="slot-label">${i}枚</div><div class="vertical-stepper"><button class="btn-step-v" onclick="changeCount(${item.id}, 's${i}', 1)">▲</button><input type="number" class="slot-input" value="${inv['s' + i] || 0}" onchange="setCount(${item.id}, 's${i}', this.value)"><button class="btn-step-v" onclick="changeCount(${item.id}, 's${i}', -1)">▼</button></div></div>`;
       }
     }
 
     card.innerHTML = `
       <div class="item-header">
-        <div class="item-title-area">
-          <span class="item-name">${item.name}</span>
-          <span class="item-price">¥${item.price}</span>
-          <button class="btn-hide-toggle" onclick="toggleHideItem(${item.id})">${isHidden ? 'Show' : 'Hide'}</button>
-        </div>
-        <span class="stock-badge ${isShortage && !isHidden ? 'badge-need' : 'badge-ok'}" style="font-size:0.75rem; padding:3px 6px; border-radius:4px;">
-          在庫: ${totalStock}枚
-        </span>
+        <div class="item-title-area"><span class="item-name">${item.name}</span><span class="item-price">¥${item.price}</span></div>
+        <span style="font-size:0.75rem; background:#eee; padding:3px 6px; border-radius:4px;">在庫: ${totalStock}枚</span>
       </div>
-      <div class="horizontal-stepper-container">
-        ${slotsHtml}
-      </div>
+      <div class="horizontal-stepper-container">${slotsHtml}</div>
     `;
-
     container.appendChild(card);
   });
-
   calcSummary();
 }
 
@@ -644,457 +451,107 @@ function setCount(itemId, key, value) {
   triggerAutoSave();
 }
 
-function changeCountLP(itemId, key, delta) {
-  const inv = storeDataMap[currentStoreId].inventory[itemId];
-  inv[key] = Math.max(0, (inv[key] || 0) + delta);
-  renderItems(currentCategory);
-  triggerAutoSave();
-}
-
-function setCountLP(itemId, key, value) {
-  const inv = storeDataMap[currentStoreId].inventory[itemId];
-  inv[key] = Math.max(0, parseInt(value, 10) || 0);
-  renderItems(currentCategory);
-  triggerAutoSave();
-}
-
-let currentCategory = 'all';
-function filterCategory(cat, btn) {
-  currentCategory = cat;
-  document.querySelectorAll('.tabs button').forEach(b => {
-    b.style.background = '#e0e0e0';
-    b.style.color = '#333';
-  });
-  if (btn) {
-    btn.style.background = '#1976d2';
-    btn.style.color = 'white';
-  }
-  renderItems(currentCategory);
-}
-
 function getSummaryValues() {
   initStoreData(currentStoreId);
   const sData = storeDataMap[currentStoreId];
-  let stampAmt = 0, stampQty = 0;
-  let postAmt = 0, postQty = 0;
-  let revAmt = 0, revQty = 0;
+  let stampAmt = 0, stampQty = 0, postAmt = 0, postQty = 0, revAmt = 0, revQty = 0;
 
   masterData.forEach(item => {
     if (sData.hiddenItems[item.id]) return;
     const inv = sData.inventory[item.id];
-    let totalStock = 0;
-    if (item.isLetterPack) {
-      totalStock = (inv.single || 0) * 1 + (inv.bundle20 || 0) * 20;
-    } else {
-      totalStock = (inv.sheet100 || 0) * 100;
-      for (let i = 1; i <= 10; i++) totalStock += (inv['s' + i] || 0) * i;
-    }
+    let totalStock = item.isLetterPack ? (inv.single || 0) * 1 + (inv.bundle20 || 0) * 20 : (inv.sheet100 || 0) * 100;
+    if (!item.isLetterPack) for (let i = 1; i <= 10; i++) totalStock += (inv['s' + i] || 0) * i;
 
     if (item.minStock > 0 && totalStock < item.minStock) {
       const orderQty = item.unit;
       const amt = orderQty * item.price;
-      if (item.category === '印紙') {
-        revAmt += amt;
-        revQty += orderQty;
-      } else if (item.category === '切手') {
-        stampAmt += amt;
-        stampQty += orderQty;
-      } else {
-        postAmt += amt;
-        postQty += orderQty;
-      }
+      if (item.category === '印紙') { revAmt += amt; revQty += orderQty; }
+      else if (item.category === '切手') { stampAmt += amt; stampQty += orderQty; }
+      else { postAmt += amt; postQty += orderQty; }
     }
   });
 
   const postalTotal = stampAmt + postAmt;
-  const totalCash = postalTotal + revAmt;
-  return { 
-    stampAmt, stampQty, 
-    postAmt, postQty, 
-    revAmt, revQty, 
-    postalTotal, totalCash 
-  };
+  return { stampAmt, stampQty, postAmt, postQty, revAmt, revQty, postalTotal, totalCash: postalTotal + revAmt };
 }
 
 function calcSummary() {
   const vals = getSummaryValues();
-  document.getElementById('sum-stamps').innerText = `${vals.stampAmt.toLocaleString()} 円`;
-  document.getElementById('sum-postcards').innerText = `${vals.postAmt.toLocaleString()} 円`;
-  document.getElementById('sum-revenue').innerText = `${vals.revAmt.toLocaleString()} 円`;
-  document.getElementById('sum-postal-total').innerText = `${vals.postalTotal.toLocaleString()} 円`;
-  document.getElementById('sum-total-cash').innerText = `${vals.totalCash.toLocaleString()} 円`;
+  const setVal = (id, txt) => { const el = document.getElementById(id); if (el) el.innerText = txt; };
+  setVal('sum-stamps', `${vals.stampAmt.toLocaleString()} 円`);
+  setVal('sum-postcards', `${vals.postAmt.toLocaleString()} 円`);
+  setVal('sum-revenue', `${vals.revAmt.toLocaleString()} 円`);
+  setVal('sum-postal-total', `${vals.postalTotal.toLocaleString()} 円`);
+  setVal('sum-total-cash', `${vals.totalCash.toLocaleString()} 円`);
 }
 
 function shareOrderSummary() {
   const vals = getSummaryValues();
-  const curStore = storesData.find(s => s.id === currentStoreId);
-  const storeName = curStore ? curStore.name : "店舗";
-
-  let text = `【${storeName}】切手・印紙 買受依頼メモ\n`;
-  text += `------------------------\n`;
-  text += `・郵便切手類 合計: ¥${vals.stampAmt.toLocaleString()}\n`;
-  text += `・葉書/LP 合計: ¥${vals.postAmt.toLocaleString()}\n`;
-  text += `・収入印紙 合計: ¥${vals.revAmt.toLocaleString()}\n`;
-  text += `・切手等 計: ¥${vals.postalTotal.toLocaleString()}\n`;
-  text += `・レジ出金額(前渡金): ¥${vals.totalCash.toLocaleString()}\n`;
-  text += `------------------------\n`;
-  text += `確認よろしくお願いいたします。`;
-
-  if (navigator.share) {
-    navigator.share({
-      title: '切手・印紙 買受依頼',
-      text: text
-    }).catch(() => {});
-  } else {
-    navigator.clipboard.writeText(text).then(() => {
-      alert("買受依頼メモをクリップボードにコピーしました！LINE等に貼り付けて送信できます。");
-    });
-  }
+  let text = `【切手・印紙 買受依頼】\n・切手類: ¥${vals.stampAmt.toLocaleString()}\n・葉書/LP: ¥${vals.postAmt.toLocaleString()}\n・収入印紙: ¥${vals.revAmt.toLocaleString()}\n・合計: ¥${vals.totalCash.toLocaleString()}`;
+  if (navigator.share) navigator.share({ text }).catch(() => {});
+  else navigator.clipboard.writeText(text).then(() => alert("コピーしました！"));
 }
 
-// --- 座標マネージャー ---
 function renderCoordManager() {
   const container = document.getElementById('coord-rows-container');
   if (!container) return;
   container.innerHTML = '';
-
-  masterData.forEach(item => {
-    const row = document.createElement('div');
-    row.className = 'coord-item-row';
-    row.innerHTML = `
-      <b>${item.name}</b>
-      <div class="coord-control-group">
-        X:<button class="btn-step-coord" onclick="adjustCoord(${item.id}, 'x', -1)">←</button><input type="range" min="0" max="1200" value="${item.x}" oninput="updateItemCoord(${item.id}, 'x', this.value)" id="slider_x_${item.id}"><button class="btn-step-coord" onclick="adjustCoord(${item.id}, 'x', 1)">→</button><span id="coord_x_${item.id}" style="width:32px; text-align:right;">${item.x}</span>px
-      </div>
-      <div class="coord-control-group">
-        Y:<button class="btn-step-coord" onclick="adjustCoord(${item.id}, 'y', -1)">←</button><input type="range" min="0" max="1700" value="${item.y}" oninput="updateItemCoord(${item.id}, 'y', this.value)" id="slider_y_${item.id}"><button class="btn-step-coord" onclick="adjustCoord(${item.id}, 'y', 1)">→</button><span id="coord_y_${item.id}" style="width:32px; text-align:right;">${item.y}</span>px
-      </div>
-    `;
-    container.appendChild(row);
-  });
-
   specialPrintData.forEach(sp => {
     const row = document.createElement('div');
     row.className = 'coord-item-row';
-    row.style.background = '#e8f5e9';
-    let editHtml = '';
-    if (sp.key === 'owner_seal') {
-      editHtml = `<input type="text" value="${sp.editableText}" oninput="updateSpecialText('${sp.key}', this.value)" style="width:40px; padding:2px; font-size:0.8rem;">`;
-    }
-    row.innerHTML = `
-      <b>${sp.name}</b> ${editHtml}
-      <div class="coord-control-group">
-        X:<button class="btn-step-coord" onclick="adjustSpecialCoord('${sp.key}', 'x', -1)">←</button><input type="range" min="0" max="1200" value="${sp.x}" oninput="updateSpecialCoord('${sp.key}', 'x', this.value)" id="slider_x_${sp.key}"><button class="btn-step-coord" onclick="adjustSpecialCoord('${sp.key}', 'x', 1)">→</button><span id="coord_x_${sp.key}" style="width:32px; text-align:right;">${sp.x}</span>px
-      </div>
-      <div class="coord-control-group">
-        Y:<button class="btn-step-coord" onclick="adjustSpecialCoord('${sp.key}', 'y', -1)">←</button><input type="range" min="0" max="1700" value="${sp.y}" oninput="updateSpecialCoord('${sp.key}', 'y', this.value)" id="slider_y_${sp.key}"><button class="btn-step-coord" onclick="adjustSpecialCoord('${sp.key}', 'y', 1)">→</button><span id="coord_y_${sp.key}" style="width:32px; text-align:right;">${sp.y}</span>px
-      </div>
-    `;
+    let editHtml = sp.key === 'owner_seal' ? `<input type="text" value="${sp.editableText || ''}" oninput="updateSpecialText('${sp.key}', this.value)" style="width:40px;">` : '';
+    row.innerHTML = `<b>${sp.name}</b> ${editHtml}
+      <div class="coord-control-group">X:<button class="btn-step-coord" onclick="adjustSpecialCoord('${sp.key}','x',-1)">←</button><input type="range" min="0" max="1200" value="${sp.x}" oninput="updateSpecialCoord('${sp.key}','x',this.value)"><button class="btn-step-coord" onclick="adjustSpecialCoord('${sp.key}','x',1)">→</button></div>
+      <div class="coord-control-group">Y:<button class="btn-step-coord" onclick="adjustSpecialCoord('${sp.key}','y',-1)">←</button><input type="range" min="0" max="1700" value="${sp.y}" oninput="updateSpecialCoord('${sp.key}','y',this.value)"><button class="btn-step-coord" onclick="adjustSpecialCoord('${sp.key}','y',1)">→</button></div>`;
     container.appendChild(row);
   });
-}
-
-function adjustCoord(id, axis, delta) {
-  const item = masterData.find(i => i.id === id);
-  if (item) {
-    item[axis] = Math.max(0, item[axis] + delta);
-    const slider = document.getElementById(`slider_${axis}_${id}`);
-    if (slider) slider.value = item[axis];
-    const span = document.getElementById(`coord_${axis}_${id}`);
-    if (span) span.innerText = item[axis];
-    updateCanvas();
-    triggerAutoSave();
-  }
 }
 
 function adjustSpecialCoord(key, axis, delta) {
   const sp = specialPrintData.find(s => s.key === key);
-  if (sp) {
-    sp[axis] = Math.max(0, sp[axis] + delta);
-    const slider = document.getElementById(`slider_${axis}_${key}`);
-    if (slider) slider.value = sp[axis];
-    const span = document.getElementById(`coord_${axis}_${key}`);
-    if (span) span.innerText = sp[axis];
-    updateCanvas();
-    triggerAutoSave();
-  }
+  if (sp) { sp[axis] = Math.max(0, sp[axis] + delta); updateCanvas(); triggerAutoSave(); renderCoordManager(); }
 }
-
-function updateItemCoord(id, axis, val) {
-  const item = masterData.find(i => i.id === id);
-  if (item) {
-    item[axis] = parseInt(val, 10);
-    const span = document.getElementById(`coord_${axis}_${id}`);
-    if (span) span.innerText = item[axis];
-    updateCanvas();
-    triggerAutoSave();
-  }
-}
-
 function updateSpecialCoord(key, axis, val) {
   const sp = specialPrintData.find(s => s.key === key);
-  if (sp) {
-    sp[axis] = parseInt(val, 10);
-    const span = document.getElementById(`coord_${axis}_${key}`);
-    if (span) span.innerText = sp[axis];
-    updateCanvas();
-    triggerAutoSave();
-  }
+  if (sp) { sp[axis] = parseInt(val, 10); updateCanvas(); triggerAutoSave(); }
 }
-
 function updateSpecialText(key, val) {
   const sp = specialPrintData.find(s => s.key === key);
-  if (sp) {
-    sp.editableText = val;
-    updateCanvas();
-  }
+  if (sp) { sp.editableText = val; updateCanvas(); }
 }
 
-function renderStoreMasterList() {
-  const container = document.getElementById('store-list-container');
-  if (!container) return;
-  container.innerHTML = '';
-  storesData.forEach(s => {
-    const isCurrent = s.id === currentStoreId;
-    const div = document.createElement('div');
-    div.className = 'master-list-item';
-    div.style.borderLeft = isCurrent ? "4px solid #1976d2" : "none";
-    div.innerHTML = `
-      <span><b>${s.name}</b> ${isCurrent ? '<b>(現在選択中)</b>' : ''}</span>
-      <div>
-        ${!isCurrent ? `<button class="btn-edit" style="background:#1976d2;" onclick="selectActiveStore(${s.id})">この店舗に切替</button>` : ''}
-        <button class="btn-edit" onclick="editStore(${s.id})">編集</button>
-        <button class="btn-del" onclick="deleteStore(${s.id})">削除</button>
-      </div>
-    `;
-    container.appendChild(div);
-  });
-}
-
-function saveStoreMaster() {
-  const idInput = document.getElementById('editStoreId').value;
-  const name = document.getElementById('storeNameInput').value;
-  if (!name) { alert("店舗名を入力してください。"); return; }
-
-  if (idInput) {
-    const s = storesData.find(st => st.id == idInput);
-    if (s) s.name = name;
-    document.getElementById('editStoreId').value = '';
-    document.getElementById('storeSubmitBtn').innerText = "店舗を追加する";
-  } else {
-    const newId = storesData.length > 0 ? Math.max(...storesData.map(s => s.id)) + 1 : 1;
-    storesData.push({ id: newId, name });
-  }
-
-  document.getElementById('storeNameInput').value = '';
-  renderStoreMasterList();
-  updateStoreDisplay();
-  syncWithCloud();
-  alert("店舗マスタを保存しました！");
-}
-
-function editStore(id) {
-  const s = storesData.find(st => st.id === id);
-  if (s) {
-    document.getElementById('editStoreId').value = s.id;
-    document.getElementById('storeNameInput').value = s.name;
-    document.getElementById('storeSubmitBtn').innerText = "店舗情報を更新";
-  }
-}
-
-function deleteStore(id) {
-  if (storesData.length <= 1) { alert("最後の店舗は削除できません。"); return; }
-  if (confirm("この店舗を削除しますか？")) {
-    storesData = storesData.filter(st => st.id !== id);
-    if (currentStoreId === id) currentStoreId = storesData[0].id;
-    renderStoreMasterList();
-    updateStoreDisplay();
-    renderItems(currentCategory);
-    syncWithCloud();
-  }
-}
-
-function renderProductMasterList() {
-  const container = document.getElementById('product-list-container');
-  if (!container) return;
-  container.innerHTML = '';
-  masterData.forEach(p => {
-    const div = document.createElement('div');
-    div.className = 'master-list-item';
-    div.innerHTML = `
-      <span><b>${p.name}</b> (¥${p.price} | 最低在庫:${p.minStock} / 買受単位:${p.unit})</span>
-      <div>
-        <button class="btn-edit" onclick="editProduct(${p.id})">編集</button>
-        <button class="btn-del" onclick="deleteProduct(${p.id})">削除</button>
-      </div>
-    `;
-    container.appendChild(div);
-  });
-}
-
-function saveProductMaster() {
-  const idInput = document.getElementById('editProdId').value;
-  const name = document.getElementById('prodNameInput').value;
-  const price = parseInt(document.getElementById('prodPriceInput').value, 10);
-  const minStock = parseInt(document.getElementById('prodMinInput').value, 10);
-  const unit = parseInt(document.getElementById('prodUnitInput').value, 10);
-  const category = document.getElementById('prodCatInput').value;
-
-  if (!name || isNaN(price)) { alert("商品名と価格を正しく入力してください。"); return; }
-
-  if (idInput) {
-    const p = masterData.find(prod => prod.id == idInput);
-    if (p) {
-      p.name = name; p.price = price; p.minStock = isNaN(minStock) ? 0 : minStock; p.unit = isNaN(unit) ? 10 : unit; p.category = category;
-    }
-    document.getElementById('editProdId').value = '';
-    document.getElementById('prodSubmitBtn').innerText = "商品を追加する";
-  } else {
-    const newId = masterData.length > 0 ? Math.max(...masterData.map(p => p.id)) + 1 : 1;
-    masterData.push({
-      id: newId, name, price, minStock: isNaN(minStock) ? 0 : minStock, unit: isNaN(unit) ? 10 : unit, category, hasSheets: true, x: 200, y: 600
-    });
-    Object.keys(storeDataMap).forEach(sId => {
-      storeDataMap[sId].inventory[newId] = { sheet100: 0 };
-      for (let i = 1; i <= 10; i++) storeDataMap[sId].inventory[newId]['s' + i] = 0;
-    });
-  }
-
-  document.getElementById('prodNameInput').value = '';
-  document.getElementById('prodPriceInput').value = '';
-  document.getElementById('prodMinInput').value = '';
-  document.getElementById('prodUnitInput').value = '';
-  renderProductMasterList();
-  renderItems(currentCategory);
-  syncWithCloud();
-  alert("商品マスタを保存しました！");
-}
-
-function editProduct(id) {
-  const p = masterData.find(prod => prod.id === id);
-  if (p) {
-    document.getElementById('editProdId').value = p.id;
-    document.getElementById('prodNameInput').value = p.name;
-    document.getElementById('prodPriceInput').value = p.price;
-    document.getElementById('prodMinInput').value = p.minStock;
-    document.getElementById('prodUnitInput').value = p.unit;
-    document.getElementById('prodCatInput').value = p.category;
-    document.getElementById('prodSubmitBtn').innerText = "商品を更新";
-  }
-}
-
-function deleteProduct(id) {
-  if (confirm("この商品を削除しますか？")) {
-    masterData = masterData.filter(p => p.id !== id);
-    renderProductMasterList();
-    renderItems(currentCategory);
-    syncWithCloud();
-  }
-}
-
-function renderCustomTextList() {
-  const container = document.getElementById('custom-text-list-container');
-  if (!container) return;
-  container.innerHTML = '';
-  
-  // デフォルトキーは削除不可リストに入れる
-  const defaultKeys = defaultSpecialPrintData.map(d => d.key);
-  
-  specialPrintData.filter(sp => !defaultKeys.includes(sp.key)).forEach(sp => {
-    const div = document.createElement('div');
-    div.className = 'master-list-item';
-    div.innerHTML = `
-      <span><b>${sp.name}</b> (内容: ${sp.editableText})</span>
-      <button class="btn-del" onclick="deleteCustomText('${sp.key}')">削除</button>
-    `;
-    container.appendChild(div);
-  });
-}
-
-function addCustomTextItem() {
-  const key = document.getElementById('customTextKey').value.trim();
-  const val = document.getElementById('customTextVal').value.trim();
-  if (!key || !val) { alert("識別キーと印字内容を入力してください。"); return; }
-  
-  if (specialPrintData.some(s => s.key === key)) {
-    alert("すでに存在するキーです。");
-    return;
-  }
-
-  specialPrintData.push({ key, name: `【カスタム】${key}`, x: 400, y: 500, editableText: val });
-  document.getElementById('customTextKey').value = '';
-  document.getElementById('customTextVal').value = '';
-  renderCustomTextList();
-  renderCoordManager();
-  syncWithCloud();
-  alert("印字テキストを追加しました！");
-}
-
-function deleteCustomText(key) {
-  if (confirm("この印字テキストを削除しますか？")) {
-    specialPrintData = specialPrintData.filter(s => s.key !== key);
-    renderCustomTextList();
-    renderCoordManager(); // コーディネーター画面も同期
-    syncWithCloud();
-  }
-}
-
-// プレビューの完全クリア＆リフレッシュ
 function refreshPreviewCanvas() {
   const canvas = document.getElementById('formCanvas');
   if (!canvas) return;
-  
-  // canvasのwidthを一度0にして描画メモリを完全に破棄（重複バグ防止）
   const w = canvas.width;
   canvas.width = 0;
   canvas.width = w;
-  
   updateCanvas();
-  alert("プレビューを完全に初期化しました！");
 }
 
-// プレビュー描画
 function updateCanvas() {
   const canvas = document.getElementById('formCanvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  const showGrid = document.getElementById('gridToggle').checked;
-
-  const space1 = document.getElementById('spaceNameQty') ? document.getElementById('spaceNameQty').value : "        ";
-  const space2 = document.getElementById('spaceQtyAmt') ? document.getElementById('spaceQtyAmt').value : "        ";
+  const showGrid = document.getElementById('gridToggle') ? document.getElementById('gridToggle').checked : false;
 
   if (bgImage) {
     canvas.width = bgImage.width;
     canvas.height = bgImage.height;
     ctx.drawImage(bgImage, 0, 0);
   } else {
-    canvas.width = 1240;
-    canvas.height = 1754;
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    canvas.width = 1240; canvas.height = 1754;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
   if (showGrid) {
     ctx.save();
     ctx.lineWidth = 1;
-    for (let x = 0; x <= canvas.width; x += 10) {
-      ctx.strokeStyle = (x % 50 === 0) ? '#999999' : '#e0e0e0';
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
-    }
-    for (let y = 0; y <= canvas.height; y += 10) {
-      ctx.strokeStyle = (y % 50 === 0) ? '#999999' : '#e0e0e0';
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
-    }
-    ctx.font = '10px sans-serif';
     for (let x = 0; x <= canvas.width; x += 50) {
-      ctx.strokeStyle = '#000000'; ctx.lineWidth = (x % 100 === 0) ? 1.5 : 0.8;
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
-      ctx.fillStyle = '#000000'; ctx.fillText(x, x + 2, 12);
+      ctx.strokeStyle = '#e0e0e0'; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
     }
     for (let y = 0; y <= canvas.height; y += 50) {
-      ctx.strokeStyle = '#000000'; ctx.lineWidth = (y % 100 === 0) ? 1.5 : 0.8;
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
-      ctx.fillStyle = '#000000'; ctx.fillText(y, 2, y - 2);
+      ctx.strokeStyle = '#e0e0e0'; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
     }
     ctx.restore();
   }
@@ -1102,40 +559,26 @@ function updateCanvas() {
   ctx.fillStyle = '#d32f2f';
   ctx.font = 'bold 20px sans-serif';
 
-  initStoreData(currentStoreId);
-  const sData = storeDataMap[currentStoreId];
+  const sData = storeDataMap[currentStoreId] || { inventory: {}, hiddenItems: {} };
+  const space1 = document.getElementById('spaceNameQty') ? document.getElementById('spaceNameQty').value : "        ";
+  const space2 = document.getElementById('spaceQtyAmt') ? document.getElementById('spaceQtyAmt').value : "        ";
 
-  // 1. 各商品の赤字描画
   masterData.forEach(item => {
     if (sData.hiddenItems[item.id]) return;
-    const inv = sData.inventory[item.id];
-    let totalStock = 0;
-    if (item.isLetterPack) {
-      totalStock = (inv.single || 0) * 1 + (inv.bundle20 || 0) * 20;
-    } else {
-      totalStock = (inv.sheet100 || 0) * 100;
-      for (let i = 1; i <= 10; i++) totalStock += (inv['s' + i] || 0) * i;
-    }
+    const inv = sData.inventory[item.id] || {};
+    let totalStock = item.isLetterPack ? (inv.single || 0) * 1 + (inv.bundle20 || 0) * 20 : (inv.sheet100 || 0) * 100;
+    if (!item.isLetterPack) for (let i = 1; i <= 10; i++) totalStock += (inv['s' + i] || 0) * i;
 
     if (item.minStock > 0 && totalStock < item.minStock) {
-      const qty = item.unit;
-      const amt = qty * item.price;
-      
-      const displayText = `${item.name}${space1}${qty}${space2}${amt.toLocaleString()}`;
-      ctx.fillText(displayText, item.x, item.y);
+      ctx.fillText(`${item.name}${space1}${item.unit}${space2}${(item.unit * item.price).toLocaleString()}`, item.x, item.y);
     }
   });
 
-  // 2. プレビュー描画内のマッピング（keyを上記と完全に一致させる）
-function updateCanvas() {
-  // ... (前略: キャンバス準備と商品印字) ...
-
   const vals = getSummaryValues();
-  // keyをdefaultSpecialPrintDataと完全に一致させて定義
   const summaryMap = {
-    sum_stamps: `${vals.stampQty}      ${vals.stampAmt.toLocaleString()}`,
-    sum_postcards: `${vals.postQty}      ${vals.postAmt.toLocaleString()}`,
-    sum_revenue: `${vals.revQty}      ￥${vals.revAmt.toLocaleString()}`,
+    sum_stamps: `${vals.stampQty}   ${vals.stampAmt.toLocaleString()}`,
+    sum_postcards: `${vals.postQty}   ${vals.postAmt.toLocaleString()}`,
+    sum_revenue: `${vals.revQty}   ${vals.revAmt.toLocaleString()}`,
     sum_revenue_amt: `￥${vals.revAmt.toLocaleString()}`,
     sum_postal_total: `￥${vals.postalTotal.toLocaleString()}`,
     sum_total_cash: `￥${vals.totalCash.toLocaleString()}`,
@@ -1143,40 +586,25 @@ function updateCanvas() {
   };
 
   specialPrintData.forEach(sp => {
-    // マッピング対象がある場合はそのテキストを、なければ編集テキストを印字
-    let text = summaryMap[sp.key] || sp.editableText || "";
-    if (text) {
-      ctx.fillText(text, sp.x, sp.y);
-    }
+    const text = summaryMap[sp.key] || sp.editableText || "";
+    if (text) ctx.fillText(text, sp.x, sp.y);
   });
 }
-function downloadFormImage() {
-  const gridToggle = document.getElementById('gridToggle');
-  const wasChecked = gridToggle.checked;
-  gridToggle.checked = false;
-  updateCanvas();
 
+function downloadFormImage() {
   const canvas = document.getElementById('formCanvas');
+  if (!canvas) return;
   const link = document.createElement('a');
-  link.download = '切手印紙売渡請求書_赤字入.png';
+  link.download = '請求書.png';
   link.href = canvas.toDataURL('image/png');
   link.click();
-
-  gridToggle.checked = wasChecked;
-  updateCanvas();
 }
 
-function resetAllInputs() {
-  if (confirm("入力した数値をすべてリセットしますか？")) {
-    initStoreData(currentStoreId);
-    renderItems(currentCategory);
-    triggerAutoSave();
-  }
-}
+function renderStoreMasterList() {}
+function renderProductMasterList() {}
 
 preloadBackground();
-initData();
+loadFromCloud();
 </script>
-
 </body>
 </html>
