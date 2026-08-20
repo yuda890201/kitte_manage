@@ -645,31 +645,34 @@ function downloadFormImage() {
   const canvas = document.getElementById('formCanvas');
   if (!canvas) return;
 
-  canvas.toBlob((blob) => {
-    if (!blob) return;
-    const url = URL.createObjectURL(blob);
+  // 1. 画像URLを作成
+  const url = canvas.toDataURL('image/png');
 
-    // 1. まず共有機能が使えるか判定 (iOSのブラウザ版などを優先)
-    const file = new File([blob], '請求書.png', { type: 'image/png' });
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-      navigator.share({
-        title: '請求書画像',
-        files: [file]
-      }).catch((err) => {
-        // 共有がキャンセルされたりエラーになった場合は、長押し保存用タブへ
-        window.open(url, '_blank');
-        alert("画像を長押しして「イメージを保存」してください。");
-      });
-    } else {
-      // 2. 共有機能が使えない（古いiOSやアプリ版など）場合は直接タブで開く
-      window.open(url, '_blank');
-      
-      // 注意書きを表示
-      setTimeout(() => {
-        alert("画像を長押しして「イメージを保存」または「コピー」を選択してください。");
-      }, 500);
-    }
-  }, 'image/png');
+  // 2. 既存のダウンロードリンクがあれば削除
+  const oldLink = document.getElementById('downloadLink');
+  if (oldLink) oldLink.remove();
+
+  // 3. 新しい保存用リンクを生成してボタンの下に追加
+  const link = document.createElement('a');
+  link.id = 'downloadLink';
+  link.href = url;
+  link.download = '請求書.png';
+  link.innerHTML = '👉 このリンクをタップして画像を保存してください';
+  link.style.display = 'block';
+  link.style.marginTop = '15px';
+  link.style.padding = '15px';
+  link.style.background = '#00c300';
+  link.style.color = 'white';
+  link.style.textAlign = 'center';
+  link.style.borderRadius = '6px';
+  link.style.fontWeight = 'bold';
+  link.style.textDecoration = 'none';
+
+  // 4. ボタンの親要素（プレビューカード）に追加
+  const previewCard = document.querySelector('.preview-card');
+  previewCard.appendChild(link);
+
+  alert("保存ボタンを作成しました！下の緑色のリンクをタップしてください。");
 }
 
 // --- 店舗マスタの描画 ---
