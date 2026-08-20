@@ -274,23 +274,41 @@ function loadFromLocalStorage() {
 }
 
 async function loadFromCloud() {
-  // ...（前略：データ取得処理）...
-  try {
-    const res = await fetch(GAS_API_URL, { mode: 'cors' });
-    const json = await res.json();
-    if (json.stores && json.stores.length > 0) storesData = json.stores;
-    // ...（中略：他のデータ取得）...
-    
-    saveToLocalStorage();
-    setSyncStatus("(同期完了)");
-    
-    // ★ここが重要：データが最新になった後に店舗表示を更新
-    initStoreData(currentStoreId);
-    updateStoreDisplay(); 
-    renderItems(currentCategory);
-  } catch(e) {
-    setSyncStatus("(オフライン)");
-  }
+  const hasLocal = loadFromLocalStorage();
+  if (hasLocal) {
+    initStoreData(currentStoreId);
+    updateStoreDisplay();
+    renderItems(currentCategory);
+    setSyncStatus("(オフラインキャッシュ)");
+  }
+
+  if (!GAS_API_URL || GAS_API_URL.includes("YOUR_GAS_WEB_APP_URL")) return;
+  setSyncStatus("(同期中...)");
+  try {
+    const res = await fetch(GAS_API_URL, { mode: 'cors' });
+    const json = await res.json();
+    if (json.stores && json.stores.length > 0) storesData = json.stores;
+    if (json.products && json.products.length > 0) masterData = json.products;
+    if (json.layout && json.layout.length > 0) specialPrintData = sanitizeSpecialPrintData(json.layout);
+    if (json.inventory && json.inventory.length > 0) {
+      storeDataMap = {};
+      json.inventory.forEach(inv => {
+        if (!storeDataMap[inv.storeId]) storeDataMap[inv.storeId] = { inventory: {}, hiddenItems: {} };
+        try {
+          const parsed = JSON.parse(inv.dataJson);
+          storeDataMap[inv.storeId].inventory[inv.productId] = parsed.inv;
+          if (parsed.hidden) storeDataMap[inv.storeId].hiddenItems[inv.productId] = true;
+        } catch(e) {}
+      });
+    }
+    saveToLocalStorage();
+    setSyncStatus("(同期完了)");
+    initStoreData(currentStoreId);
+    updateStoreDisplay();
+    renderItems(currentCategory);
+  } catch(e) {
+    setSyncStatus("(オフライン稼働)");
+  }
 }
 
 async function syncWithCloud() {
@@ -339,21 +357,18 @@ function preloadBackground() {
   bgImage.onerror = () => { bgImage = null; updateCanvas(); };
 }
 
-function init() {
-  // 1. まずLocalStorageからIDを読み込む
-  loadFromLocalStorage(); 
-  
-  // 2. 店舗IDに基づいてデータを初期化
-  initStoreData(currentStoreId);
-  
-  // 3. 表示を更新
-  updateStoreDisplay();
-  
-  // 4. クラウド同期を開始
-  loadFromCloud();
-  
-  // 5. 最後に描画
-  renderItems();
+function initStoreData(storeId) {
+  if (!storeDataMap[storeId]) storeDataMap[storeId] = { inventory: {}, hiddenItems: {} };
+  masterData.forEach(item => {
+    if (!storeDataMap[storeId].inventory[item.id]) {
+      if (item.isLetterPack) {
+        storeDataMap[storeId].inventory[item.id] = { single: 0, bundle20: 0 };
+      } else {
+        storeDataMap[storeId].inventory[item.id] = { sheet100: 0 };
+        for (let i = 1; i <= 10; i++) storeDataMap[storeId].inventory[item.id]['s' + i] = 0;
+      }
+    }
+  });
 }
 
 function switchMode(mode, btn) {
