@@ -574,12 +574,11 @@ function updateCanvas() {
     }
   });
 
-// 2. 特殊項目・サマリー等の描画（数量が0より大きい場合のみ印字するよう修正）
-const vals = getSummaryValues();
+  const vals = getSummaryValues();
   const summaryMap = {
-    sum_stamps: vals.stampQty > 0 ? `${vals.stampQty}   ${vals.stampAmt.toLocaleString()}` : "",
-    sum_postcards: vals.postQty > 0 ? `${vals.postQty}   ${vals.postAmt.toLocaleString()}` : "",
-    sum_revenue: vals.revQty > 0 ? `${vals.revQty}   ${vals.revAmt.toLocaleString()}` : "",
+    sum_stamps: vals.stampQty > 0 ? `${vals.stampQty}    ${vals.stampAmt.toLocaleString()}` : "",
+    sum_postcards: vals.postQty > 0 ? `${vals.postQty}    ${vals.postAmt.toLocaleString()}` : "",
+    sum_revenue: vals.revQty > 0 ? `${vals.revQty}    ${vals.revAmt.toLocaleString()}` : "",
     sum_revenue_amt: vals.revAmt > 0 ? `￥${vals.revAmt.toLocaleString()}` : "",
     sum_postal_total: vals.postalTotal > 0 ? `￥${vals.postalTotal.toLocaleString()}` : "",
     sum_total_cash: vals.totalCash > 0 ? `￥${vals.totalCash.toLocaleString()}` : "",
@@ -592,6 +591,7 @@ const vals = getSummaryValues();
       ctx.fillText(text, sp.x, sp.y);
     }
   });
+} /* ← ここにあった閉じカッコ抜けを修正しました！ */
 
 function downloadFormImage() {
   const canvas = document.getElementById('formCanvas');
