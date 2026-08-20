@@ -316,49 +316,7 @@ async function loadFromCloud() {
     setSyncStatus("(オフライン稼働)");
   }
 }
-// クラウドから強制的に最新データを取得して上書きする関数
-async function forcePullFromCloud() {
-  if (!GAS_API_URL || GAS_API_URL.includes("YOUR_GAS_WEB_APP_URL")) {
-    alert("GAS_API_URLが設定されていません。");
-    return;
-  }
-  
-  if (!confirm("スプレッドシートの最新データを強制的に取得し、現在の画面を上書きしますか？")) return;
 
-  setSyncStatus("(強制読込中...)");
-  try {
-    const res = await fetch(GAS_API_URL, { mode: 'cors' });
-    if (!res.ok) throw new Error(`通信エラー (${res.status})`);
-    
-    const json = await res.json();
-    if (json.stores && json.stores.length > 0) storesData = json.stores;
-    if (json.products && json.products.length > 0) masterData = json.products;
-    if (json.layout && json.layout.length > 0) specialPrintData = sanitizeSpecialPrintData(json.layout);
-    
-    if (json.inventory && json.inventory.length > 0) {
-      storeDataMap = {};
-      json.inventory.forEach(inv => {
-        if (!storeDataMap[inv.storeId]) storeDataMap[inv.storeId] = { inventory: {}, hiddenItems: {} };
-        try {
-          const parsed = JSON.parse(inv.dataJson);
-          storeDataMap[inv.storeId].inventory[inv.productId] = parsed.inv;
-          if (parsed.hidden) storeDataMap[inv.storeId].hiddenItems[inv.productId] = true;
-        } catch(e) {}
-      });
-    }
-    
-    saveToLocalStorage();
-    setSyncStatus("(強制読込成功)");
-    initStoreData(currentStoreId);
-    updateStoreDisplay();
-    renderItems(currentCategory);
-    alert("スプレッドシートから最新データを正常に取得しました！");
-    
-  } catch(e) {
-    setSyncStatus(`(読込失敗: ${e.message})`);
-    alert(`クラウドからの取得に失敗しました。\nエラー: ${e.message}\n\n※GASの公開設定が「全員（匿名ユーザー含む）」になっているか、URLが正しいかご確認ください。`);
-  }
-}
 async function syncWithCloud() {
   saveToLocalStorage();
   if (!GAS_API_URL || GAS_API_URL.includes("YOUR_GAS_WEB_APP_URL")) {
