@@ -600,8 +600,119 @@ function downloadFormImage() {
   link.click();
 }
 
-function renderStoreMasterList() {}
-function renderProductMasterList() {}
+// --- 店舗マスタの描画 ---
+function renderStoreMasterList() {
+  const container = document.getElementById('store-list-container');
+  if (!container) return;
+  container.innerHTML = '';
+  
+  storesData.forEach(s => {
+    const isCurrent = s.id === currentStoreId;
+    const div = document.createElement('div');
+    div.className = 'master-list-item';
+    div.style.borderLeft = isCurrent ? "4px solid #1976d2" : "none";
+    div.innerHTML = `
+      <span><b>${s.name}</b> ${isCurrent ? '<b>(現在選択中)</b>' : ''}</span>
+      <div>
+        ${!isCurrent ? `<button class="btn-edit" style="background:#1976d2;" onclick="selectActiveStore(${s.id})">切替</button>` : ''}
+        <button class="btn-edit" onclick="editStore(${s.id})">編集</button>
+        <button class="btn-del" onclick="deleteStore(${s.id})">削除</button>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// --- 商品マスタの描画 ---
+function renderProductMasterList() {
+  const container = document.getElementById('product-list-container');
+  if (!container) return;
+  container.innerHTML = '';
+  
+  masterData.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'master-list-item';
+    div.innerHTML = `
+      <span><b>${p.name}</b> (¥${p.price} / 最低在庫:${p.minStock})</span>
+      <div>
+        <button class="btn-edit" onclick="editProduct(${p.id})">編集</button>
+        <button class="btn-del" onclick="deleteProduct(${p.id})">削除</button>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// --- 店舗・商品の操作用ヘルパー関数 ---
+function selectActiveStore(id) {
+  currentStoreId = parseInt(id, 10);
+  initStoreData(currentStoreId);
+  updateStoreDisplay();
+  renderStoreMasterList();
+  renderItems(currentCategory);
+  alert(`店舗を切り替えました。`);
+}
+
+function saveStoreMaster() {
+  const name = document.getElementById('storeNameInput').value;
+  if (!name) { alert("店舗名を入力してください。"); return; }
+  const newId = storesData.length > 0 ? Math.max(...storesData.map(s => s.id)) + 1 : 1;
+  storesData.push({ id: newId, name });
+  document.getElementById('storeNameInput').value = '';
+  renderStoreMasterList();
+  syncWithCloud();
+  alert("店舗を追加しました！");
+}
+
+function deleteStore(id) {
+  if (storesData.length <= 1) { alert("最後の店舗は削除できません。"); return; }
+  if (confirm("この店舗を削除しますか？")) {
+    storesData = storesData.filter(st => st.id !== id);
+    if (currentStoreId === id) currentStoreId = storesData[0].id;
+    renderStoreMasterList();
+    updateStoreDisplay();
+    renderItems(currentCategory);
+    syncWithCloud();
+  }
+}
+
+function saveProductMaster() {
+  const name = document.getElementById('prodNameInput').value;
+  const price = parseInt(document.getElementById('prodPriceInput').value, 10);
+  const minStock = parseInt(document.getElementById('prodMinInput').value, 10);
+  const unit = parseInt(document.getElementById('prodUnitInput').value, 10);
+  const category = document.getElementById('prodCatInput').value;
+
+  if (!name || isNaN(price)) { alert("商品名と価格を正しく入力してください。"); return; }
+
+  const newId = masterData.length > 0 ? Math.max(...masterData.map(p => p.id)) + 1 : 1;
+  masterData.push({
+    id: newId, name, price, minStock: isNaN(minStock) ? 0 : minStock, unit: isNaN(unit) ? 10 : unit, category, hasSheets: true, x: 200, y: 600
+  });
+  
+  Object.keys(storeDataMap).forEach(sId => {
+    storeDataMap[sId].inventory[newId] = { sheet100: 0 };
+    for (let i = 1; i <= 10; i++) storeDataMap[sId].inventory[newId]['s' + i] = 0;
+  });
+
+  document.getElementById('prodNameInput').value = '';
+  document.getElementById('prodPriceInput').value = '';
+  document.getElementById('prodMinInput').value = '';
+  document.getElementById('prodUnitInput').value = '';
+  renderProductMasterList();
+  renderItems(currentCategory);
+  syncWithCloud();
+  alert("商品を追加しました！");
+}
+
+function deleteProduct(id) {
+  if (confirm("この商品を削除しますか？")) {
+    masterData = masterData.filter(p => p.id !== id);
+    renderProductMasterList();
+    renderItems(currentCategory);
+    syncWithCloud();
+  }
+}
 
 preloadBackground();
 loadFromCloud();
