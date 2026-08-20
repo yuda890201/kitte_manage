@@ -575,38 +575,19 @@ function updateCanvas() {
   });
 
 // 2. 特殊項目・サマリー等の描画（数量が0より大きい場合のみ印字するよう修正）
-  const vals = getSummaryValues();
-  
-  // 各サマリーの条件付きテキスト生成
-  const summaryMap = {};
-  
-  if (vals.stampQty > 0) {
-    summaryMap.sum_stamps = `${vals.stampQty}   ${vals.stampAmt.toLocaleString()}`;
-  }
-  if (vals.postQty > 0) {
-    summaryMap.sum_postcards = `${vals.postQty}   ${vals.postAmt.toLocaleString()}`;
-  }
-  if (vals.revQty > 0) {
-    summaryMap.sum_revenue = `${vals.revQty}   ${vals.revAmt.toLocaleString()}`;
-    summaryMap.sum_revenue_amt = `￥${vals.revAmt.toLocaleString()}`; // 収入印紙の金額のみ
-  }
-  if (vals.postalTotal > 0) {
-    summaryMap.sum_postal_total = `￥${vals.postalTotal.toLocaleString()}`; // 切手等計 金額のみ
-  }
-  if (vals.totalCash > 0) {
-    summaryMap.sum_total_cash = `￥${vals.totalCash.toLocaleString()}`;
-  }
-  
-  // 作成年月日は常に印字
-  summaryMap.print_date = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
+const vals = getSummaryValues();
+  const summaryMap = {
+    sum_stamps: vals.stampQty > 0 ? `${vals.stampQty}   ${vals.stampAmt.toLocaleString()}` : "",
+    sum_postcards: vals.postQty > 0 ? `${vals.postQty}   ${vals.postAmt.toLocaleString()}` : "",
+    sum_revenue: vals.revQty > 0 ? `${vals.revQty}   ${vals.revAmt.toLocaleString()}` : "",
+    sum_revenue_amt: vals.revAmt > 0 ? `￥${vals.revAmt.toLocaleString()}` : "",
+    sum_postal_total: vals.postalTotal > 0 ? `￥${vals.postalTotal.toLocaleString()}` : "",
+    sum_total_cash: vals.totalCash > 0 ? `￥${vals.totalCash.toLocaleString()}` : "",
+    print_date: new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })
+  };
 
   specialPrintData.forEach(sp => {
-    // summaryMapにデータが存在する場合（かつ数量が0より上の場合）、または編集テキストがある場合のみ描画
     let text = summaryMap[sp.key] || sp.editableText || "";
-    // サマリー系キーでデータがない（0の場合）は空白にして印字させない
-    if (sp.key.startsWith('sum_') && !summaryMap[sp.key]) {
-      text = ""; 
-    }
     if (text) {
       ctx.fillText(text, sp.x, sp.y);
     }
