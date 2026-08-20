@@ -644,10 +644,37 @@ function updateCanvas() {
 function downloadFormImage() {
   const canvas = document.getElementById('formCanvas');
   if (!canvas) return;
-  const link = document.createElement('a');
-  link.download = '請求書.png';
-  link.href = canvas.toDataURL('image/png');
-  link.click();
+
+  canvas.toBlob(async (blob) => {
+    if (!blob) return;
+    const file = new File([blob], '切手印紙請求書.png', { type: 'image/png' });
+
+    // 1. スマホの共有機能（LINE、ドライブ保存、ファイルに保存など）が使える場合
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          title: '切手印紙 請求書',
+          files: [file]
+        });
+        return;
+      } catch (err) {
+        if (err.name !== 'AbortError') console.log(err);
+      }
+    }
+
+    // 2. スマホ（Android/iOS）の場合は新しいタブで画像を開く（長押し保存用）
+    const url = URL.createObjectURL(blob);
+    if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      window.open(url, '_blank');
+      alert("画像が新しいタブで開きました。\n画像を【長押し】して「画像を保存」してください！");
+    } else {
+      // PCの場合は従来のダウンロードリンクを発火
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = '切手印紙請求書.png';
+      link.click();
+    }
+  }, 'image/png');
 }
 
 // --- 店舗マスタの描画 ---
