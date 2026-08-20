@@ -124,18 +124,24 @@
 
       <div class="summary-card">
         <div class="summary-title">📢 発注・買受サマリー（最低在庫割れ）</div>
+        
         <div class="summary-grid">
           <div class="summary-item"><div class="label">郵便切手類 合計</div><div class="val" id="sum-stamps">0 円</div></div>
           <div class="summary-item"><div class="label">葉書・レターパック 合計</div><div class="val" id="sum-postcards">0 円</div></div>
           <div class="summary-item"><div class="label">収入印紙 合計</div><div class="val" id="sum-revenue">0 円</div></div>
           <div class="summary-item"><div class="label">切手等 計（印紙除く）</div><div class="val" id="sum-postal-total">0 円</div></div>
         </div>
+        
         <div class="total-box">
           <div class="label">レジ出金額（商品前渡金 総額）</div>
           <div class="val" id="sum-total-cash">0 円</div>
         </div>
-        <button class="btn-action-main" onclick="switchMode('preview', document.querySelectorAll('.mode-tab')[1])">📄 請求書プレビュー・画像作成へ</button>
-        <button class="btn-share" onclick="shareOrderSummary()">💬 買受依頼をワンタップ共有</button>
+        
+<!-- 画像生成ボタン -->
+  <button class="btn-action-main" style="background:#0288d1;" onclick="generateImageFromInput()">🖼️ 請求書画像を作成する</button>
+  
+  <!-- 保存用リンクが表示されるエリア -->
+  <div id="download-area"></div>
       </div>
     </div>
   </div>
@@ -788,7 +794,40 @@ function deleteProduct(id) {
     syncWithCloud();
   }
 }
+// 入力画面から直接画像を生成してリンクを表示する関数
+function generateImageFromInput() {
+  // 1. 裏側でプレビューCanvasを更新して描画を最新にする
+  updateCanvas(); 
+  
+  // 2. 既存の古いリンクを削除
+  const oldLink = document.getElementById('downloadLink');
+  if (oldLink) oldLink.remove();
 
+  // 3. 画像URL作成
+  const canvas = document.getElementById('formCanvas');
+  const url = canvas.toDataURL('image/png');
+
+  // 4. 保存用リンクを生成してカード直下に追加
+  const link = document.createElement('a');
+  link.id = 'downloadLink';
+  link.href = url;
+  link.download = '請求書.png';
+  link.innerHTML = '✅ 画像が生成されました【タップして保存】';
+  link.style.display = 'block';
+  link.style.marginTop = '15px';
+  link.style.padding = '15px';
+  link.style.background = '#00c300';
+  link.style.color = 'white';
+  link.style.textAlign = 'center';
+  link.style.borderRadius = '6px';
+  link.style.fontWeight = 'bold';
+  link.style.textDecoration = 'none';
+
+  const downloadArea = document.getElementById('download-area');
+  downloadArea.appendChild(link);
+
+  alert("画像を作成しました！下の緑色のボタンをタップして保存してください。");
+}
 preloadBackground();
 loadFromCloud();
 </script>
