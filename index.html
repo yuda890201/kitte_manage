@@ -16,6 +16,16 @@
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background: var(--bg); color: var(--text); padding-bottom: 90px; }
+    
+    /* 同期中オーバーレイ（画面ロック＆アニメーション） */
+    #sync-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5); z-index: 1000;
+      display: none; justify-content: center; align-items: center;
+      color: white; font-weight: bold; font-size: 1.2rem;
+      pointer-events: all;
+    }
+
     header { background: var(--primary); color: white; padding: 14px 16px; position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     header h1 { font-size: 1.1rem; font-weight: bold; display: flex; align-items: center; gap: 8px; }
     header h1 img { width: 24px; height: 24px; border-radius: 4px; object-fit: cover; }
@@ -43,12 +53,9 @@
     .total-box .label { font-size: 0.8rem; color: #e65100; font-weight: bold; }
     .total-box .val { font-size: 1.35rem; font-weight: bold; color: #d84315; }
 
-.item-card { background: var(--card-bg); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); transition: all 0.2s; }
-    
-    /* 非表示時のスタイル（黒ハイライト＆折りたたみ） */
+    .item-card { background: var(--card-bg); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); transition: all 0.2s; }
     .item-card.hidden-item { background: #212121; color: white; padding: 8px 14px; }
-    .item-card.hidden-item .item-price, 
-    .item-card.hidden-item .horizontal-stepper-container { display: none; }
+    .item-card.hidden-item .item-price, .item-card.hidden-item .horizontal-stepper-container { display: none; }
     .item-card.hidden-item .item-name { color: white; }
 
     .item-header { display: flex; justify-content: space-between; align-items: center; }
@@ -56,7 +63,8 @@
     .item-name { font-size: 1rem; font-weight: bold; }
     .item-price { font-size: 0.85rem; color: var(--text-sub); }
     .btn-hide-toggle { background: #eee; border: 1px solid #ccc; font-size: 0.75rem; padding: 3px 8px; border-radius: 4px; cursor: pointer; }
-    .item-card.hidden-item .btn-hide-toggle { background: #424242; color: white; border-color: #616161; }    
+    .item-card.hidden-item .btn-hide-toggle { background: #424242; color: white; border-color: #616161; }
+    
     .horizontal-stepper-container { display: flex; gap: 6px; overflow-x: auto; padding-top: 8px; }
     .slot-box { background: #fafafa; border: 1px solid var(--border); border-radius: 6px; padding: 6px; text-align: center; min-width: 75px; flex: 1; }
     .slot-label { font-size: 0.7rem; color: var(--text-sub); margin-bottom: 4px; white-space: nowrap; }
@@ -65,7 +73,6 @@
     .slot-input { width: 100%; height: 26px; text-align: center; font-size: 0.9rem; border: 1px solid #ccc; border-radius: 3px; font-weight: bold; }
 
     .preview-layout { display: flex; flex-direction: column; gap: 16px; }
-    /* 横向きやタブレット（700px以上）で左右に分割 */
     @media (min-width: 700px) {
       .preview-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
       .preview-card { position: sticky; top: 70px; }
@@ -90,28 +97,13 @@
     .btn-del { background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; }
 
     .btn-action-main { width: 100%; background: #c62828; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
-    .btn-share { width: 100%; background: #00c300; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 8px; }
     .sync-status { font-size: 0.75rem; color: #ffeb3b; margin-left: 8px; font-weight: normal; }
-    /* --- 追加：同期中オーバーレイのスタイル --- */
-    #sync-overlay {
-      position: fixed; /* 画面全体を固定 */
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5); /* 半透明の黒背景 */
-      z-index: 1000; /* 最前面に表示 */
-      display: none; /* 初期状態は非表示 */
-      justify-content: center; /* 中央寄せ */
-      align-items: center;     /* 中央寄せ */
-      color: white;
-      font-weight: bold;
-      font-size: 1.2rem;
-      pointer-events: all; /* 操作をブロックして誤操作防止 */
-    }
   </style>
 </head>
 <body>
-  <div id="sync-overlay">🔄 同期中...データを保存しています</div>
-  <!-- 以下既存の header ... -->
+
+<div id="sync-overlay">🔄 同期中...データを保存しています</div>
+
 <header>
   <h1><img src="kitte_manage.png" alt="Icon"> 切手管理 <span id="syncStatus" class="sync-status">(オフライン)</span></h1>
   <button class="btn-header" onclick="syncWithCloud()">手動同期</button>
@@ -142,24 +134,19 @@
 
       <div class="summary-card">
         <div class="summary-title">📢 発注・買受サマリー（最低在庫割れ）</div>
-        
         <div class="summary-grid">
           <div class="summary-item"><div class="label">郵便切手類 合計</div><div class="val" id="sum-stamps">0 円</div></div>
           <div class="summary-item"><div class="label">葉書・レターパック 合計</div><div class="val" id="sum-postcards">0 円</div></div>
           <div class="summary-item"><div class="label">収入印紙 合計</div><div class="val" id="sum-revenue">0 円</div></div>
           <div class="summary-item"><div class="label">切手等 計（印紙除く）</div><div class="val" id="sum-postal-total">0 円</div></div>
         </div>
-        
         <div class="total-box">
           <div class="label">レジ出金額（商品前渡金 総額）</div>
           <div class="val" id="sum-total-cash">0 円</div>
         </div>
         
-<!-- 画像生成ボタン -->
-  <button class="btn-action-main" style="background:#0288d1;" onclick="generateImageFromInput()">🖼️ 請求書画像を作成する</button>
-  
-  <!-- 保存用リンクが表示されるエリア -->
-  <div id="download-area"></div>
+        <button class="btn-action-main" style="background:#0288d1;" onclick="generateImageFromInput()">🖼️ 請求書画像を作成する</button>
+        <div id="download-area"></div>
       </div>
     </div>
   </div>
@@ -182,7 +169,6 @@
           <canvas id="formCanvas"></canvas>
         </div>
         <button class="btn-action-main" style="background:#0288d1; margin-top:8px;" onclick="refreshPreviewCanvas()">🔄 プレビューをリフレッシュ</button>
-        <button class="btn-action-main" onclick="downloadFormImage()">📥 画像をダウンロード</button>
       </div>
 
       <div class="coord-manager">
@@ -212,7 +198,7 @@
         <input type="number" id="prodMinInput" placeholder="最低在庫">
         <input type="number" id="prodUnitInput" placeholder="買受単位">
         <select id="prodCatInput" style="grid-column: span 2;"><option value="切手">切手</option><option value="印紙">収入印紙</option><option value="葉書">葉書・レターパック</option></select>
-        <button class="btn-submit-master" onclick="saveProductMaster()">商品を追加</button>
+        <button id="prodSubmitBtn" class="btn-submit-master" onclick="saveProductMaster()">商品を追加</button>
       </div>
       <div id="product-list-container" style="margin-top: 10px;"></div>
     </div>
@@ -334,10 +320,18 @@ async function loadFromCloud() {
   }
 }
 
+// 同期アニメーション制御
+function showSyncOverlay(show) {
+  const overlay = document.getElementById('sync-overlay');
+  if (overlay) overlay.style.display = show ? 'flex' : 'none';
+}
+
 async function syncWithCloud() {
+  showSyncOverlay(true);
   saveToLocalStorage();
   if (!GAS_API_URL || GAS_API_URL.includes("YOUR_GAS_WEB_APP_URL")) {
     setSyncStatus("(ローカル保存)");
+    showSyncOverlay(false);
     return;
   }
   setSyncStatus("(保存中...)");
@@ -358,19 +352,14 @@ async function syncWithCloud() {
     setSyncStatus("(クラウド保存完了)");
   } catch(e) {
     setSyncStatus("(通信エラー)");
+  } finally {
+    showSyncOverlay(false);
   }
 }
 
 function setSyncStatus(txt) {
   const el = document.getElementById('syncStatus');
   if (el) el.innerText = txt;
-}
-
-let saveTimer = null;
-function triggerAutoSave() {
-  saveToLocalStorage();
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(syncWithCloud, 2000);
 }
 
 function preloadBackground() {
@@ -417,22 +406,9 @@ function updateStoreDisplay() {
 let currentCategory = 'all';
 function filterCategory(cat, btn) {
   currentCategory = cat;
-  // カテゴリタブの見た目切替
-  const tabs = document.querySelectorAll('.tabs button, div[style*="overflow-x:auto"] button');
-  tabs.forEach(b => {
-    if (b.innerText.includes('すべて') || b.innerText.includes('印紙') || b.innerText.includes('切手') || b.innerText.includes('葉書')) {
-      b.style.background = '#e0e0e0';
-      b.style.color = '#333';
-    }
-  });
-  if (btn) {
-    btn.style.background = '#1976d2';
-    btn.style.color = 'white';
-  }
   renderItems(currentCategory);
 }
 
-// 【修正】toggleHideItem: 追加した商品でも確実に動作させる
 function toggleHideItem(id) {
   initStoreData(currentStoreId);
   const sData = storeDataMap[currentStoreId];
@@ -441,7 +417,6 @@ function toggleHideItem(id) {
   const isHidden = !!sData.hiddenItems[id];
   sData.hiddenItems[id] = !isHidden;
   
-  // 画面全体を再読み込みせず、CSSクラスの切り替えだけで対応
   const card = document.getElementById(`item-card-${id}`);
   if (card) {
     if (sData.hiddenItems[id]) {
@@ -452,7 +427,7 @@ function toggleHideItem(id) {
       card.querySelector('.btn-hide-toggle').innerText = '非表示';
     }
   }
-  triggerAutoSave();
+  syncWithCloud();
 }
 
 function renderItems(filterCat = 'all') {
@@ -462,10 +437,8 @@ function renderItems(filterCat = 'all') {
   initStoreData(currentStoreId);
   const sData = storeDataMap[currentStoreId];
 
-  // まだカードが1枚もない初回のみHTMLを生成する
   if (container.children.length === 0) {
     masterData.forEach(item => {
-      if (filterCat !== 'all' && item.category !== filterCat) return;
       const isHidden = !!sData.hiddenItems[item.id];
       const inv = sData.inventory[item.id] || {};
 
@@ -476,42 +449,12 @@ function renderItems(filterCat = 'all') {
       let slotsHtml = '';
       if (item.isLetterPack) {
         slotsHtml += `
-          <div class="slot-box">
-            <div class="slot-label">バラ</div>
-            <div class="vertical-stepper">
-              <button class="btn-step-v" onclick="changeCount(${item.id}, 'single', 1)">▲</button>
-              <input type="number" id="input_${item.id}_single" class="slot-input" value="${inv.single || 0}" onchange="setCount(${item.id}, 'single', this.value)">
-              <button class="btn-step-v" onclick="changeCount(${item.id}, 'single', -1)">▼</button>
-            </div>
-          </div>
-          <div class="slot-box">
-            <div class="slot-label">1束(20)</div>
-            <div class="vertical-stepper">
-              <button class="btn-step-v" onclick="changeCount(${item.id}, 'bundle20', 1)">▲</button>
-              <input type="number" id="input_${item.id}_bundle20" class="slot-input" value="${inv.bundle20 || 0}" onchange="setCount(${item.id}, 'bundle20', this.value)">
-              <button class="btn-step-v" onclick="changeCount(${item.id}, 'bundle20', -1)">▼</button>
-            </div>
-          </div>`;
+          <div class="slot-box"><div class="slot-label">バラ</div><div class="vertical-stepper"><button class="btn-step-v" onclick="changeCount(${item.id}, 'single', 1)">▲</button><input type="number" id="input_${item.id}_single" class="slot-input" value="${inv.single || 0}" onchange="setCount(${item.id}, 'single', this.value)"><button class="btn-step-v" onclick="changeCount(${item.id}, 'single', -1)">▼</button></div></div>
+          <div class="slot-box"><div class="slot-label">1束(20)</div><div class="vertical-stepper"><button class="btn-step-v" onclick="changeCount(${item.id}, 'bundle20', 1)">▲</button><input type="number" id="input_${item.id}_bundle20" class="slot-input" value="${inv.bundle20 || 0}" onchange="setCount(${item.id}, 'bundle20', this.value)"><button class="btn-step-v" onclick="changeCount(${item.id}, 'bundle20', -1)">▼</button></div></div>`;
       } else {
-        slotsHtml += `
-          <div class="slot-box">
-            <div class="slot-label">100枚</div>
-            <div class="vertical-stepper">
-              <button class="btn-step-v" onclick="changeCount(${item.id}, 'sheet100', 1)">▲</button>
-              <input type="number" id="input_${item.id}_sheet100" class="slot-input" value="${inv.sheet100 || 0}" onchange="setCount(${item.id}, 'sheet100', this.value)">
-              <button class="btn-step-v" onclick="changeCount(${item.id}, 'sheet100', -1)">▼</button>
-            </div>
-          </div>`;
+        slotsHtml += `<div class="slot-box"><div class="slot-label">100枚</div><div class="vertical-stepper"><button class="btn-step-v" onclick="changeCount(${item.id}, 'sheet100', 1)">▲</button><input type="number" id="input_${item.id}_sheet100" class="slot-input" value="${inv.sheet100 || 0}" onchange="setCount(${item.id}, 'sheet100', this.value)"><button class="btn-step-v" onclick="changeCount(${item.id}, 'sheet100', -1)">▼</button></div></div>`;
         for (let i = 1; i <= 10; i++) {
-          slotsHtml += `
-            <div class="slot-box">
-              <div class="slot-label">${i}枚</div>
-              <div class="vertical-stepper">
-                <button class="btn-step-v" onclick="changeCount(${item.id}, 's${i}', 1)">▲</button>
-                <input type="number" id="input_${item.id}_s${i}" class="slot-input" value="${inv['s' + i] || 0}" onchange="setCount(${item.id}, 's${i}', this.value)">
-                <button class="btn-step-v" onclick="changeCount(${item.id}, 's${i}', -1)">▼</button>
-              </div>
-            </div>`;
+          slotsHtml += `<div class="slot-box"><div class="slot-label">${i}枚</div><div class="vertical-stepper"><button class="btn-step-v" onclick="changeCount(${item.id}, 's${i}', 1)">▲</button><input type="number" id="input_${item.id}_s${i}" class="slot-input" value="${inv['s' + i] || 0}" onchange="setCount(${item.id}, 's${i}', this.value)"><button class="btn-step-v" onclick="changeCount(${item.id}, 's${i}', -1)">▼</button></div></div>`;
         }
       }
 
@@ -530,12 +473,10 @@ function renderItems(filterCat = 'all') {
     });
   }
 
-  // カードがすでに存在する場合は、HTMLを再構築せず、各入力値と在庫バッジだけを最新の状態に更新する
   masterData.forEach(item => {
     const card = document.getElementById(`item-card-${item.id}`);
     if (!card) return;
 
-    // カテゴリフィルターの適用・非表示の反映
     const isHidden = !!sData.hiddenItems[item.id];
     if ((filterCat !== 'all' && item.category !== filterCat) || isHidden) {
       card.style.display = 'none';
@@ -573,7 +514,7 @@ function renderItems(filterCat = 'all') {
 
   calcSummary();
 }
-  // フォーカス中（入力中）のinput要素でなければ値を書き換える（カーソルが勝手に外れるのを防ぐ）
+
 function updateInputVal(elemId, val) {
   const el = document.getElementById(elemId);
   if (el && document.activeElement !== el) {
@@ -586,26 +527,24 @@ function updateInputVal(elemId, val) {
 function changeCount(itemId, key, delta) {
   const inv = storeDataMap[currentStoreId].inventory[itemId];
   inv[key] = Math.max(0, (inv[key] || 0) + delta);
-  
-  // 入力値と在庫バッジ、サマリーだけをピンポイント更新（画面が戻らない）
   renderItems(currentCategory);
-  triggerAutoSave();
+  syncWithCloud();
 }
 
 function setCount(itemId, key, value) {
   const inv = storeDataMap[currentStoreId].inventory[itemId];
   inv[key] = Math.max(0, parseInt(value, 10) || 0);
-  
   calcSummary();
-  triggerAutoSave();
+  syncWithCloud();
 }
+
 function getSummaryValues() {
   initStoreData(currentStoreId);
   const sData = storeDataMap[currentStoreId];
   let stampAmt = 0, stampQty = 0, postAmt = 0, postQty = 0, revAmt = 0, revQty = 0;
 
   masterData.forEach(item => {
-    if (sData.hiddenItems[item.id]) return;
+    if (sData.hiddenItems && sData.hiddenItems[item.id]) return;
     const inv = sData.inventory[item.id];
     let totalStock = item.isLetterPack ? (inv.single || 0) * 1 + (inv.bundle20 || 0) * 20 : (inv.sheet100 || 0) * 100;
     if (!item.isLetterPack) for (let i = 1; i <= 10; i++) totalStock += (inv['s' + i] || 0) * i;
@@ -633,20 +572,38 @@ function calcSummary() {
   setVal('sum-total-cash', `${vals.totalCash.toLocaleString()} 円`);
 }
 
-function shareOrderSummary() {
-  const vals = getSummaryValues();
-  let text = `【切手・印紙 買受依頼】\n・切手類: ¥${vals.stampAmt.toLocaleString()}\n・葉書/LP: ¥${vals.postAmt.toLocaleString()}\n・収入印紙: ¥${vals.revAmt.toLocaleString()}\n・合計: ¥${vals.totalCash.toLocaleString()}`;
-  if (navigator.share) navigator.share({ text }).catch(() => {});
-  else navigator.clipboard.writeText(text).then(() => alert("コピーしました！"));
+function generateImageFromInput() {
+  updateCanvas();
+  const oldLink = document.getElementById('downloadLink');
+  if (oldLink) oldLink.remove();
+
+  const canvas = document.getElementById('formCanvas');
+  const url = canvas.toDataURL('image/png');
+
+  const link = document.createElement('a');
+  link.id = 'downloadLink';
+  link.href = url;
+  link.download = '請求書.png';
+  link.innerHTML = '✅ 画像が生成されました【タップして保存】';
+  link.style.display = 'block';
+  link.style.marginTop = '15px';
+  link.style.padding = '15px';
+  link.style.background = '#00c300';
+  link.style.color = 'white';
+  link.style.textAlign = 'center';
+  link.style.borderRadius = '6px';
+  link.style.fontWeight = 'bold';
+  link.style.textDecoration = 'none';
+
+  document.getElementById('download-area').appendChild(link);
+  alert("画像を作成しました！下の緑色のボタンをタップして保存してください。");
 }
 
-// --- 座標調整マネージャー（数値直接入力方式に改良） ---
 function renderCoordManager() {
   const container = document.getElementById('coord-rows-container');
   if (!container) return;
   container.innerHTML = '';
 
-  // 1. 個別商品の座標調整行
   masterData.forEach(item => {
     const row = document.createElement('div');
     row.className = 'coord-item-row';
@@ -658,7 +615,6 @@ function renderCoordManager() {
     container.appendChild(row);
   });
 
-  // 2. 特殊項目・サマリーの座標調整行
   specialPrintData.forEach(sp => {
     const row = document.createElement('div');
     row.className = 'coord-item-row';
@@ -678,7 +634,7 @@ function updateItemCoord(id, axis, val) {
   if (item) {
     item[axis] = parseInt(val, 10) || 0;
     updateCanvas();
-    triggerAutoSave();
+    syncWithCloud();
   }
 }
 
@@ -687,7 +643,7 @@ function updateSpecialCoord(key, axis, val) {
   if (sp) {
     sp[axis] = parseInt(val, 10) || 0;
     updateCanvas();
-    triggerAutoSave();
+    syncWithCloud();
   }
 }
 
@@ -740,7 +696,7 @@ function updateCanvas() {
   const space2 = document.getElementById('spaceQtyAmt') ? document.getElementById('spaceQtyAmt').value : "        ";
 
   masterData.forEach(item => {
-    if (sData.hiddenItems[item.id]) return;
+    if (sData.hiddenItems && sData.hiddenItems[item.id]) return;
     const inv = sData.inventory[item.id] || {};
     let totalStock = item.isLetterPack ? (inv.single || 0) * 1 + (inv.bundle20 || 0) * 20 : (inv.sheet100 || 0) * 100;
     if (!item.isLetterPack) for (let i = 1; i <= 10; i++) totalStock += (inv['s' + i] || 0) * i;
@@ -769,41 +725,6 @@ function updateCanvas() {
   });
 }
 
-function downloadFormImage() {
-  const canvas = document.getElementById('formCanvas');
-  if (!canvas) return;
-
-  // 1. 画像URLを作成
-  const url = canvas.toDataURL('image/png');
-
-  // 2. 既存のダウンロードリンクがあれば削除
-  const oldLink = document.getElementById('downloadLink');
-  if (oldLink) oldLink.remove();
-
-  // 3. 新しい保存用リンクを生成してボタンの下に追加
-  const link = document.createElement('a');
-  link.id = 'downloadLink';
-  link.href = url;
-  link.download = '請求書.png';
-  link.innerHTML = '👉 このリンクをタップして画像を保存してください';
-  link.style.display = 'block';
-  link.style.marginTop = '15px';
-  link.style.padding = '15px';
-  link.style.background = '#00c300';
-  link.style.color = 'white';
-  link.style.textAlign = 'center';
-  link.style.borderRadius = '6px';
-  link.style.fontWeight = 'bold';
-  link.style.textDecoration = 'none';
-
-  // 4. ボタンの親要素（プレビューカード）に追加
-  const previewCard = document.querySelector('.preview-card');
-  previewCard.appendChild(link);
-
-  alert("保存ボタンを作成しました！下の緑色のリンクをタップしてください。");
-}
-
-// --- 店舗マスタの描画 ---
 function renderStoreMasterList() {
   const container = document.getElementById('store-list-container');
   if (!container) return;
@@ -826,7 +747,6 @@ function renderStoreMasterList() {
   });
 }
 
-// 【修正】編集ボタンが効くように、onclickをテンプレートリテラルで正しくバインドする
 function renderProductMasterList() {
   const container = document.getElementById('product-list-container');
   if (!container) return;
@@ -836,7 +756,7 @@ function renderProductMasterList() {
     const div = document.createElement('div');
     div.className = 'master-list-item';
     div.innerHTML = `
-      <span><b>${p.name}</b></span>
+      <span><b>${p.name}</b> (¥${p.price} / 最低在庫:${p.minStock})</span>
       <div>
         <button class="btn-edit" onclick="editProduct(${p.id})">編集</button>
         <button class="btn-del" onclick="deleteProduct(${p.id})">削除</button>
@@ -846,23 +766,6 @@ function renderProductMasterList() {
   });
 }
 
-// editProduct関数も念のため再確認（これが定義されていればOKです）
-function editProduct(id) {
-  const p = masterData.find(prod => prod.id === id);
-  if (p) {
-    document.getElementById('editProdId').value = p.id;
-    document.getElementById('prodNameInput').value = p.name;
-    document.getElementById('prodPriceInput').value = p.price;
-    document.getElementById('prodMinInput').value = p.minStock;
-    document.getElementById('prodUnitInput').value = p.unit;
-    document.getElementById('prodCatInput').value = p.category;
-    document.getElementById('prodSubmitBtn').innerText = "商品を更新";
-    // マスタ管理タブへ遷移させる
-    switchMode('master');
-  }
-}
-
-// --- 店舗・商品の操作用ヘルパー関数 ---
 function selectActiveStore(id) {
   currentStoreId = parseInt(id, 10);
   initStoreData(currentStoreId);
@@ -932,68 +835,7 @@ function deleteProduct(id) {
     syncWithCloud();
   }
 }
-// 入力画面から直接画像を生成してリンクを表示する関数
-function generateImageFromInput() {
-  // 1. 裏側でプレビューCanvasを更新して描画を最新にする
-  updateCanvas(); 
-  
-  // 2. 既存の古いリンクを削除
-  const oldLink = document.getElementById('downloadLink');
-  if (oldLink) oldLink.remove();
 
-  // 3. 画像URL作成
-  const canvas = document.getElementById('formCanvas');
-  const url = canvas.toDataURL('image/png');
-
-  // 4. 保存用リンクを生成してカード直下に追加
-  const link = document.createElement('a');
-  link.id = 'downloadLink';
-  link.href = url;
-  link.download = '請求書.png';
-  link.innerHTML = '✅ 画像が生成されました【タップして保存】';
-  link.style.display = 'block';
-  link.style.marginTop = '15px';
-  link.style.padding = '15px';
-  link.style.background = '#00c300';
-  link.style.color = 'white';
-  link.style.textAlign = 'center';
-  link.style.borderRadius = '6px';
-  link.style.fontWeight = 'bold';
-  link.style.textDecoration = 'none';
-
-  const downloadArea = document.getElementById('download-area');
-  downloadArea.appendChild(link);
-
-  alert("画像を作成しました！下の緑色のボタンをタップして保存してください。");
-}
-  // 同期の状態を制御する関数
-function showSyncOverlay(show) {
-  const overlay = document.getElementById('sync-overlay');
-  if (overlay) overlay.style.display = show ? 'flex' : 'none';
-}
-
-async function syncWithCloud() {
-  showSyncOverlay(true); // 同期開始でロック
-  
-  saveToLocalStorage();
-  if (!GAS_API_URL || GAS_API_URL.includes("YOUR_GAS_WEB_APP_URL")) {
-    setSyncStatus("(ローカル保存)");
-    showSyncOverlay(false);
-    return;
-  }
-
-  // 重複防止のため、データをセットに変換してから送るなど、データ整合性を強化
-  // ... (既存の payload 作成処理) ...
-
-  try {
-    await fetch(GAS_API_URL, { method: "POST", mode: 'no-cors', body: JSON.stringify(payload) });
-    setSyncStatus("(クラウド保存完了)");
-  } catch(e) {
-    setSyncStatus("(通信エラー)");
-  } finally {
-    showSyncOverlay(false); // 成功・失敗に関わらずロック解除
-  }
-}
 preloadBackground();
 loadFromCloud();
 </script>
