@@ -187,17 +187,10 @@
       <div id="store-list-container" style="margin-top: 10px;"></div>
     </div>
 
-    <div class="master-card">
-      <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;">📦 商品マスタ（追加・削除）</h3>
-      <div class="master-form">
-        <input type="text" id="prodNameInput" placeholder="商品名">
-        <input type="number" id="prodPriceInput" placeholder="価格">
-        <input type="number" id="prodMinInput" placeholder="最低在庫">
-        <input type="number" id="prodUnitInput" placeholder="買受単位">
-        <select id="prodCatInput" style="grid-column: span 2;"><option value="切手">切手</option><option value="印紙">収入印紙</option><option value="葉書">葉書・レターパック</option></select>
-        <button class="btn-submit-master" onclick="saveProductMaster()">商品を追加</button>
-      </div>
-      <div id="product-list-container" style="margin-top: 10px;"></div>
+<div class="master-card">
+      <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;">📦 店舗別 商品設定（最低在庫・買受数）</h3>
+      <p style="font-size:0.75rem; color:#666; margin-bottom:8px;">※現在選択中の店舗（<span id="masterStoreName" style="font-weight:bold; color:#1565c0;">1号店</span>）の設定を変更できます。</p>
+      <div id="product-config-list-container" style="margin-top: 10px;"></div>
     </div>
   </div>
 
@@ -296,14 +289,22 @@ async function loadFromCloud() {
     if (json.stores && json.stores.length > 0) storesData = json.stores;
     if (json.products && json.products.length > 0) masterData = json.products;
     if (json.layout && json.layout.length > 0) specialPrintData = sanitizeSpecialPrintData(json.layout);
+// loadFromCloud 内の inventory 読み込み部分を以下のように修正
     if (json.inventory && json.inventory.length > 0) {
       storeDataMap = {};
       json.inventory.forEach(inv => {
-        if (!storeDataMap[inv.storeId]) storeDataMap[inv.storeId] = { inventory: {}, hiddenItems: {} };
+        if (!storeDataMap[inv.storeId]) storeDataMap[inv.storeId] = { inventory: {}, hiddenItems: {}, productConfigs: {} };
         try {
           const parsed = JSON.parse(inv.dataJson);
-          storeDataMap[inv.storeId].inventory[inv.productId] = parsed.inv;
-          if (parsed.hidden) storeDataMap[inv.storeId].hiddenItems[inv.productId] = true;
+          if (parsed.inv) storeDataMap[inv.storeId].inventory[inv.productId] = parsed.inv;
+          if (parsed.hidden) {
+            if (!storeDataMap[inv.storeId].hiddenItems) storeDataMap[inv.storeId].hiddenItems = {};
+            storeDataMap[inv.storeId].hiddenItems[inv.productId] = true;
+          }
+          if (parsed.config) {
+            if (!storeDataMap[inv.storeId].productConfigs) storeDataMap[inv.storeId].productConfigs = {};
+            storeDataMap[inv.storeId].productConfigs[inv.productId] = parsed.config;
+          }
         } catch(e) {}
       });
     }
@@ -336,12 +337,26 @@ async function syncWithCloud() {
     return;
   }
   setSyncStatus("(保存中...)");
+  
   let inventoryList = [];
   Object.keys(storeDataMap).forEach(sId => {
     const sData = storeDataMap[sId];
-    const allProdIds = new Set([...Object.keys(sData.inventory), ...Object.keys(sData.hiddenItems)]);
+    const allProdIds = new Set([
+      ...Object.keys(sData.inventory), 
+      ...Object.keys(sData.hiddenItems || {}),
+      ...Object.keys(sData.productConfigs || {})
+    ]);
+    
     allProdIds.forEach(pId => {
-      inventoryList.push({ storeId: sId, productId: pId, dataJson: JSON.stringify({ inv: sData.inventory[pId] || {}, hidden: sData.hiddenItems[pId] || false }) });
+      inventoryList.push({
+        storeId: sId,
+        productId: pId,
+        dataJson: JSON.stringify({
+          inv: sData.inventory[pId] || {},
+          hidden: sData.hiddenItems && sData.hiddenItems[pId] ? true : false,
+          config: sData.productConfigs && sData.productConfigs[pId] ? sData.productConfigs[pId] : null
+        })
+      });
     });
   });
 
@@ -373,8 +388,11 @@ function preloadBackground() {
 }
 
 function initStoreData(storeId) {
-  if (!storeDataMap[storeId]) storeDataMap[storeId] = { inventory: {}, hiddenItems: {} };
+  if (!storeDataMap[storeId]) storeDataMap[storeId] = { inventory: {}, hiddenItems: {}, productConfigs: {} };
+  if (!storeDataMap[storeId].productConfigs) storeDataMap[storeId].productConfigs = {};
+
   masterData.forEach(item => {
+    // 在庫の初期化
     if (!storeDataMap[storeId].inventory[item.id]) {
       if (item.isLetterPack) {
         storeDataMap[storeId].inventory[item.id] = { single: 0, bundle20: 0 };
@@ -383,9 +401,15 @@ function initStoreData(storeId) {
         for (let i = 1; i <= 10; i++) storeDataMap[storeId].inventory[item.id]['s' + i] = 0;
       }
     }
+    // 店舗別設定の初期化
+    if (!storeDataMap[storeId].productConfigs[item.id]) {
+      storeDataMap[storeId].productConfigs[item.id] = {
+        minStock: item.minStock,
+        unit: item.unit
+      };
+    }
   });
 }
-
 function switchMode(mode, btn) {
   document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.section-view').forEach(v => v.classList.remove('active'));
@@ -554,8 +578,11 @@ function getSummaryValues() {
     let totalStock = item.isLetterPack ? (inv.single || 0) * 1 + (inv.bundle20 || 0) * 20 : (inv.sheet100 || 0) * 100;
     if (!item.isLetterPack) for (let i = 1; i <= 10; i++) totalStock += (inv['s' + i] || 0) * i;
 
-    if (item.minStock > 0 && totalStock < item.minStock) {
-      const orderQty = item.unit;
+    // 【修正】店舗ごとの個別設定を取得
+    const config = getStoreProductConfig(currentStoreId, item.id);
+
+    if (config.minStock > 0 && totalStock < config.minStock) {
+      const orderQty = config.unit;
       const amt = orderQty * item.price;
       if (item.category === '印紙') { revAmt += amt; revQty += orderQty; }
       else if (item.category === '切手') { stampAmt += amt; stampQty += orderQty; }
@@ -755,23 +782,51 @@ function renderStoreMasterList() {
 }
 
 function renderProductMasterList() {
-  const container = document.getElementById('product-list-container');
+  const container = document.getElementById('product-config-list-container');
   if (!container) return;
   container.innerHTML = '';
   
+  // 現在の店舗名を表示に反映
+  const curStore = storesData.find(s => s.id === currentStoreId);
+  const nameEl = document.getElementById('masterStoreName');
+  if (nameEl && curStore) nameEl.innerText = curStore.name;
+
+  initStoreData(currentStoreId);
+
   masterData.forEach(p => {
+    const config = getStoreProductConfig(currentStoreId, p.id);
     const div = document.createElement('div');
     div.className = 'master-list-item';
+    div.style.display = 'grid';
+    div.style.gridTemplateColumns = '1.2fr 1fr 1fr';
+    div.style.gap = '8px';
+    div.style.alignItems = 'center';
+    
     div.innerHTML = `
-      <span><b>${p.name}</b> (¥${p.price} / 最低在庫:${p.minStock})</span>
+      <span><b>${p.name}</b><br><small style="color:#666;">(定価:¥${p.price})</small></span>
       <div>
-        <button class="btn-del" onclick="deleteProduct(${p.id})">削除</button>
+        <label style="font-size:0.7rem; color:#666; display:block;">最低在庫</label>
+        <input type="number" class="slot-input" value="${config.minStock}" onchange="updateStoreProductConfig(${p.id}, 'minStock', this.value)">
+      </div>
+      <div>
+        <label style="font-size:0.7rem; color:#666; display:block;">買受単位</label>
+        <input type="number" class="slot-input" value="${config.unit}" onchange="updateStoreProductConfig(${p.id}, 'unit', this.value)">
       </div>
     `;
     container.appendChild(div);
   });
 }
 
+function updateStoreProductConfig(productId, key, value) {
+  initStoreData(currentStoreId);
+  const sData = storeDataMap[currentStoreId];
+  if (!sData.productConfigs[productId]) {
+    const baseProd = masterData.find(p => p.id === productId);
+    sData.productConfigs[productId] = { minStock: baseProd.minStock, unit: baseProd.unit };
+  }
+  sData.productConfigs[productId][key] = Math.max(0, parseInt(value, 10) || 0);
+  saveToLocalStorage();
+}
 function selectActiveStore(id) {
   currentStoreId = parseInt(id, 10);
   initStoreData(currentStoreId);
@@ -780,7 +835,23 @@ function selectActiveStore(id) {
   renderItems(currentCategory);
   alert(`店舗を切り替えました。`);
 }
+// 店舗ごとのカスタム商品設定（最低在庫・買受数）を取得する関数
+function getStoreProductConfig(storeId, productId) {
+  if (!storeDataMap[storeId]) storeDataMap[storeId] = { inventory: {}, hiddenItems: {}, productConfigs: {} };
+  if (!storeDataMap[storeId].productConfigs) storeDataMap[storeId].productConfigs = {};
+  
+  // 店舗独自のカスタム設定がなければ、グローバルマスタのデフォルト値を返す
+  const baseProd = masterData.find(p => p.id === productId);
+  if (!baseProd) return { minStock: 0, unit: 10 };
 
+  if (!storeDataMap[storeId].productConfigs[productId]) {
+    storeDataMap[storeId].productConfigs[productId] = {
+      minStock: baseProd.minStock,
+      unit: baseProd.unit
+    };
+  }
+  return storeDataMap[storeId].productConfigs[productId];
+}
 function saveStoreMaster() {
   const name = document.getElementById('storeNameInput').value;
   if (!name) { alert("店舗名を入力してください。"); return; }
