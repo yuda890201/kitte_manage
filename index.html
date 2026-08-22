@@ -29,7 +29,7 @@
     header { background: var(--primary); color: white; padding: 14px 16px; position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     header h1 { font-size: 1.1rem; font-weight: bold; display: flex; align-items: center; gap: 8px; }
     header h1 img { width: 24px; height: 24px; border-radius: 4px; object-fit: cover; }
-    .btn-header { background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 12px; border-radius: 4px; font-size: 0.85rem; cursor: pointer; }
+    .btn-header { background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 12px; border-radius: 4px; font-size: 0.85rem; cursor: pointer; font-weight: bold; }
     
     .container { max-width: 1200px; margin: 0 auto; padding: 12px; }
     
@@ -93,7 +93,6 @@
     .master-form input, .master-form select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; }
     .btn-submit-master { grid-column: span 2; background: #4caf50; color: white; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer; }
     .master-list-item { display: flex; justify-content: space-between; align-items: center; background: #fafafa; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px; font-size: 0.85rem; }
-    .btn-edit { background: #ff9800; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; }
     .btn-del { background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; }
 
     .btn-action-main { width: 100%; background: #c62828; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
@@ -102,11 +101,11 @@
 </head>
 <body>
 
-<div id="sync-overlay">🔄 同期中...データを保存しています</div>
+<div id="sync-overlay">🔄 保存中...お待ちください</div>
 
 <header>
   <h1><img src="kitte_manage.png" alt="Icon"> 切手管理 <span id="syncStatus" class="sync-status">(オフライン)</span></h1>
-  <button class="btn-header" onclick="syncWithCloud()">手動同期</button>
+  <button class="btn-header" onclick="syncWithCloud()">💾 保存 (Save)</button>
 </header>
 
 <div class="container">
@@ -145,7 +144,7 @@
           <div class="val" id="sum-total-cash">0 円</div>
         </div>
         
-        <button class="btn-action-main" style="background:#0288d1;" onclick="generateImageFromInput()">🖼️ 請求書画像を作成する</button>
+        <button class="btn-action-main" style="background:#0288d1;" onclick="generateImageFromInput()">🖼️ 請求書画像を作成する（保存含む）</button>
         <div id="download-area"></div>
       </div>
     </div>
@@ -182,7 +181,6 @@
     <div class="master-card">
       <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;">🏪 店舗設定</h3>
       <div class="master-form">
-        <input type="hidden" id="editStoreId" value="">
         <input type="text" id="storeNameInput" placeholder="店舗名" style="grid-column: span 2;">
         <button class="btn-submit-master" onclick="saveStoreMaster()">店舗を追加</button>
       </div>
@@ -190,15 +188,14 @@
     </div>
 
     <div class="master-card">
-      <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;">📦 商品マスタ</h3>
+      <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;">📦 商品マスタ（追加・削除）</h3>
       <div class="master-form">
-        <input type="hidden" id="editProdId" value="">
         <input type="text" id="prodNameInput" placeholder="商品名">
         <input type="number" id="prodPriceInput" placeholder="価格">
         <input type="number" id="prodMinInput" placeholder="最低在庫">
         <input type="number" id="prodUnitInput" placeholder="買受単位">
         <select id="prodCatInput" style="grid-column: span 2;"><option value="切手">切手</option><option value="印紙">収入印紙</option><option value="葉書">葉書・レターパック</option></select>
-        <button id="prodSubmitBtn" class="btn-submit-master" onclick="saveProductMaster()">商品を追加</button>
+        <button class="btn-submit-master" onclick="saveProductMaster()">商品を追加</button>
       </div>
       <div id="product-list-container" style="margin-top: 10px;"></div>
     </div>
@@ -292,7 +289,7 @@ async function loadFromCloud() {
   }
 
   if (!GAS_API_URL || GAS_API_URL.includes("YOUR_GAS_WEB_APP_URL")) return;
-  setSyncStatus("(同期中...)");
+  setSyncStatus("(読み込み中...)");
   try {
     const res = await fetch(GAS_API_URL, { mode: 'cors' });
     const json = await res.json();
@@ -311,7 +308,7 @@ async function loadFromCloud() {
       });
     }
     saveToLocalStorage();
-    setSyncStatus("(同期完了)");
+    setSyncStatus("(最新)");
     initStoreData(currentStoreId);
     updateStoreDisplay();
     renderItems(currentCategory);
@@ -349,9 +346,11 @@ async function syncWithCloud() {
 
   try {
     await fetch(GAS_API_URL, { method: "POST", mode: 'no-cors', body: JSON.stringify(payload) });
-    setSyncStatus("(クラウド保存完了)");
+    setSyncStatus("(保存完了)");
+    alert("クラウドへの保存が完了しました！");
   } catch(e) {
     setSyncStatus("(通信エラー)");
+    alert("保存に失敗しました。通信環境を確認してください。");
   } finally {
     showSyncOverlay(false);
   }
@@ -427,7 +426,6 @@ function toggleHideItem(id) {
       card.querySelector('.btn-hide-toggle').innerText = '非表示';
     }
   }
-  syncWithCloud();
 }
 
 function renderItems(filterCat = 'all') {
@@ -528,14 +526,14 @@ function changeCount(itemId, key, delta) {
   const inv = storeDataMap[currentStoreId].inventory[itemId];
   inv[key] = Math.max(0, (inv[key] || 0) + delta);
   renderItems(currentCategory);
-  syncWithCloud();
+  saveToLocalStorage();
 }
 
 function setCount(itemId, key, value) {
   const inv = storeDataMap[currentStoreId].inventory[itemId];
   inv[key] = Math.max(0, parseInt(value, 10) || 0);
   calcSummary();
-  syncWithCloud();
+  saveToLocalStorage();
 }
 
 function getSummaryValues() {
@@ -572,7 +570,10 @@ function calcSummary() {
   setVal('sum-total-cash', `${vals.totalCash.toLocaleString()} 円`);
 }
 
-function generateImageFromInput() {
+async function generateImageFromInput() {
+  // 画像作成ボタンを押した時、確実にクラウド保存も実行する（保険）
+  await syncWithCloud();
+
   updateCanvas();
   const oldLink = document.getElementById('downloadLink');
   if (oldLink) oldLink.remove();
@@ -596,7 +597,7 @@ function generateImageFromInput() {
   link.style.textDecoration = 'none';
 
   document.getElementById('download-area').appendChild(link);
-  alert("画像を作成しました！下の緑色のボタンをタップして保存してください。");
+  alert("保存と画像作成が完了しました！下の緑色のボタンをタップして保存してください。");
 }
 
 function renderCoordManager() {
@@ -634,7 +635,7 @@ function updateItemCoord(id, axis, val) {
   if (item) {
     item[axis] = parseInt(val, 10) || 0;
     updateCanvas();
-    syncWithCloud();
+    saveToLocalStorage();
   }
 }
 
@@ -643,7 +644,7 @@ function updateSpecialCoord(key, axis, val) {
   if (sp) {
     sp[axis] = parseInt(val, 10) || 0;
     updateCanvas();
-    syncWithCloud();
+    saveToLocalStorage();
   }
 }
 
@@ -738,8 +739,7 @@ function renderStoreMasterList() {
     div.innerHTML = `
       <span><b>${s.name}</b> ${isCurrent ? '<b>(現在選択中)</b>' : ''}</span>
       <div>
-        ${!isCurrent ? `<button class="btn-edit" style="background:#1976d2;" onclick="selectActiveStore(${s.id})">切替</button>` : ''}
-        <button class="btn-edit" onclick="editStore(${s.id})">編集</button>
+        ${!isCurrent ? `<button class="btn-edit" style="background:#1976d2; padding:4px 8px; border:none; color:white; border-radius:4px; cursor:pointer;" onclick="selectActiveStore(${s.id})">切替</button>` : ''}
         <button class="btn-del" onclick="deleteStore(${s.id})">削除</button>
       </div>
     `;
@@ -758,7 +758,6 @@ function renderProductMasterList() {
     div.innerHTML = `
       <span><b>${p.name}</b> (¥${p.price} / 最低在庫:${p.minStock})</span>
       <div>
-        <button class="btn-edit" onclick="editProduct(${p.id})">編集</button>
         <button class="btn-del" onclick="deleteProduct(${p.id})">削除</button>
       </div>
     `;
@@ -782,8 +781,8 @@ function saveStoreMaster() {
   storesData.push({ id: newId, name });
   document.getElementById('storeNameInput').value = '';
   renderStoreMasterList();
-  syncWithCloud();
-  alert("店舗を追加しました！");
+  saveToLocalStorage();
+  alert("店舗を追加しました！（保存ボタンを押すとクラウドに反映されます）");
 }
 
 function deleteStore(id) {
@@ -794,7 +793,7 @@ function deleteStore(id) {
     renderStoreMasterList();
     updateStoreDisplay();
     renderItems(currentCategory);
-    syncWithCloud();
+    saveToLocalStorage();
   }
 }
 
@@ -823,8 +822,8 @@ function saveProductMaster() {
   document.getElementById('prodUnitInput').value = '';
   renderProductMasterList();
   renderItems(currentCategory);
-  syncWithCloud();
-  alert("商品を追加しました！");
+  saveToLocalStorage();
+  alert("商品を追加しました！（保存ボタンを押すとクラウドに反映されます）");
 }
 
 function deleteProduct(id) {
@@ -832,7 +831,7 @@ function deleteProduct(id) {
     masterData = masterData.filter(p => p.id !== id);
     renderProductMasterList();
     renderItems(currentCategory);
-    syncWithCloud();
+    saveToLocalStorage();
   }
 }
 
