@@ -399,6 +399,18 @@ function updateStoreDisplay() {
 let currentCategory = 'all';
 function filterCategory(cat, btn) {
   currentCategory = cat;
+  // カテゴリタブの見た目切替
+  const tabs = document.querySelectorAll('.tabs button, div[style*="overflow-x:auto"] button');
+  tabs.forEach(b => {
+    if (b.innerText.includes('すべて') || b.innerText.includes('印紙') || b.innerText.includes('切手') || b.innerText.includes('葉書')) {
+      b.style.background = '#e0e0e0';
+      b.style.color = '#333';
+    }
+  });
+  if (btn) {
+    btn.style.background = '#1976d2';
+    btn.style.color = 'white';
+  }
   renderItems(currentCategory);
 }
 
@@ -416,56 +428,136 @@ function toggleHideItem(id) {
 function renderItems(filterCat = 'all') {
   const container = document.getElementById('items-container');
   if (!container) return;
-  container.innerHTML = '';
+
   initStoreData(currentStoreId);
   const sData = storeDataMap[currentStoreId];
 
-  masterData.forEach(item => {
-    if (filterCat !== 'all' && item.category !== filterCat) return;
-    const isHidden = !!sData.hiddenItems[item.id];
-    const inv = sData.inventory[item.id];
+  // まだカードが1枚もない初回のみHTMLを生成する
+  if (container.children.length === 0) {
+    masterData.forEach(item => {
+      if (filterCat !== 'all' && item.category !== filterCat) return;
+      const isHidden = !!sData.hiddenItems[item.id];
+      const inv = sData.inventory[item.id] || {};
 
-    let totalStock = 0;
-    if (item.isLetterPack) {
-      totalStock = (inv.single || 0) * 1 + (inv.bundle20 || 0) * 20;
+      const card = document.createElement('div');
+      card.className = `item-card ${isHidden ? 'hidden-item' : ''}`;
+      card.id = `item-card-${item.id}`;
+
+      let slotsHtml = '';
+      if (item.isLetterPack) {
+        slotsHtml += `
+          <div class="slot-box">
+            <div class="slot-label">バラ</div>
+            <div class="vertical-stepper">
+              <button class="btn-step-v" onclick="changeCount(${item.id}, 'single', 1)">▲</button>
+              <input type="number" id="input_${item.id}_single" class="slot-input" value="${inv.single || 0}" onchange="setCount(${item.id}, 'single', this.value)">
+              <button class="btn-step-v" onclick="changeCount(${item.id}, 'single', -1)">▼</button>
+            </div>
+          </div>
+          <div class="slot-box">
+            <div class="slot-label">1束(20)</div>
+            <div class="vertical-stepper">
+              <button class="btn-step-v" onclick="changeCount(${item.id}, 'bundle20', 1)">▲</button>
+              <input type="number" id="input_${item.id}_bundle20" class="slot-input" value="${inv.bundle20 || 0}" onchange="setCount(${item.id}, 'bundle20', this.value)">
+              <button class="btn-step-v" onclick="changeCount(${item.id}, 'bundle20', -1)">▼</button>
+            </div>
+          </div>`;
+      } else {
+        slotsHtml += `
+          <div class="slot-box">
+            <div class="slot-label">100枚</div>
+            <div class="vertical-stepper">
+              <button class="btn-step-v" onclick="changeCount(${item.id}, 'sheet100', 1)">▲</button>
+              <input type="number" id="input_${item.id}_sheet100" class="slot-input" value="${inv.sheet100 || 0}" onchange="setCount(${item.id}, 'sheet100', this.value)">
+              <button class="btn-step-v" onclick="changeCount(${item.id}, 'sheet100', -1)">▼</button>
+            </div>
+          </div>`;
+        for (let i = 1; i <= 10; i++) {
+          slotsHtml += `
+            <div class="slot-box">
+              <div class="slot-label">${i}枚</div>
+              <div class="vertical-stepper">
+                <button class="btn-step-v" onclick="changeCount(${item.id}, 's${i}', 1)">▲</button>
+                <input type="number" id="input_${item.id}_s${i}" class="slot-input" value="${inv['s' + i] || 0}" onchange="setCount(${item.id}, 's${i}', this.value)">
+                <button class="btn-step-v" onclick="changeCount(${item.id}, 's${i}', -1)">▼</button>
+              </div>
+            </div>`;
+        }
+      }
+
+      card.innerHTML = `
+        <div class="item-header">
+          <div class="item-title-area">
+            <span class="item-name">${item.name}</span>
+            <span class="item-price">¥${item.price}</span>
+            <button class="btn-hide-toggle" onclick="toggleHideItem(${item.id})">${isHidden ? '表示' : '非表示'}</button>
+          </div>
+          <span id="stock_badge_${item.id}" style="font-size:0.75rem; background:#eee; padding:3px 6px; border-radius:4px;">在庫: 0枚</span>
+        </div>
+        <div class="horizontal-stepper-container">${slotsHtml}</div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  // カードがすでに存在する場合は、HTMLを再構築せず、各入力値と在庫バッジだけを最新の状態に更新する
+  masterData.forEach(item => {
+    const card = document.getElementById(`item-card-${item.id}`);
+    if (!card) return;
+
+    // カテゴリフィルターの適用・非表示の反映
+    const isHidden = !!sData.hiddenItems[item.id];
+    if ((filterCat !== 'all' && item.category !== filterCat) || isHidden) {
+      card.style.display = 'none';
+      return;
     } else {
-      totalStock = (inv.sheet100 || 0) * 100;
-      for (let i = 1; i <= 10; i++) totalStock += (inv['s' + i] || 0) * i;
+      card.style.display = 'block';
     }
 
-    const card = document.createElement('div');
-    card.className = `item-card ${isHidden ? 'hidden-item' : ''}`;
-
-    let slotsHtml = '';
-    if (item.isLetterPack) {
-      slotsHtml += `<div class="slot-box"><div class="slot-label">バラ</div><div class="vertical-stepper"><button class="btn-step-v" onclick="changeCount(${item.id}, 'single', 1)">▲</button><input type="number" class="slot-input" value="${inv.single || 0}" onchange="setCount(${item.id}, 'single', this.value)"><button class="btn-step-v" onclick="changeCount(${item.id}, 'single', -1)">▼</button></div></div>`;
-      slotsHtml += `<div class="slot-box"><div class="slot-label">1束(20)</div><div class="vertical-stepper"><button class="btn-step-v" onclick="changeCount(${item.id}, 'bundle20', 1)">▲</button><input type="number" class="slot-input" value="${inv.bundle20 || 0}" onchange="setCount(${item.id}, 'bundle20', this.value)"><button class="btn-step-v" onclick="changeCount(${item.id}, 'bundle20', -1)">▼</button></div></div>`;
+    if (isHidden) {
+      card.className = 'item-card hidden-item';
+      return;
     } else {
-      slotsHtml += `<div class="slot-box"><div class="slot-label">100枚</div><div class="vertical-stepper"><button class="btn-step-v" onclick="changeCount(${item.id}, 'sheet100', 1)">▲</button><input type="number" class="slot-input" value="${inv.sheet100 || 0}" onchange="setCount(${item.id}, 'sheet100', this.value)"><button class="btn-step-v" onclick="changeCount(${item.id}, 'sheet100', -1)">▼</button></div></div>`;
+      card.className = 'item-card';
+    }
+
+    const inv = sData.inventory[item.id] || {};
+    let totalStock = 0;
+
+    if (item.isLetterPack) {
+      totalStock = (inv.single || 0) * 1 + (inv.bundle20 || 0) * 20;
+      updateInputVal(`input_${item.id}_single`, inv.single || 0);
+      updateInputVal(`input_${item.id}_bundle20`, inv.bundle20 || 0);
+    } else {
+      totalStock = (inv.sheet100 || 0) * 100;
+      updateInputVal(`input_${item.id}_sheet100`, inv.sheet100 || 0);
       for (let i = 1; i <= 10; i++) {
-        slotsHtml += `<div class="slot-box"><div class="slot-label">${i}枚</div><div class="vertical-stepper"><button class="btn-step-v" onclick="changeCount(${item.id}, 's${i}', 1)">▲</button><input type="number" class="slot-input" value="${inv['s' + i] || 0}" onchange="setCount(${item.id}, 's${i}', this.value)"><button class="btn-step-v" onclick="changeCount(${item.id}, 's${i}', -1)">▼</button></div></div>`;
+        totalStock += (inv['s' + i] || 0) * i;
+        updateInputVal(`input_${item.id}_s${i}`, inv['s' + i] || 0);
       }
     }
 
-    card.innerHTML = `
-      <div class="item-header">
-        <div class="item-title-area">
-          <span class="item-name">${item.name}</span>
-          <span class="item-price">¥${item.price}</span>
-          <button class="btn-hide-toggle" onclick="toggleHideItem(${item.id})">${isHidden ? '表示' : '非表示'}</button>
-        </div>
-        <span style="font-size:0.75rem; background:#eee; padding:3px 6px; border-radius:4px;">在庫: ${totalStock}枚</span>
-      </div>
-      <div class="horizontal-stepper-container">${slotsHtml}</div>
-    `;
-    container.appendChild(card);
+    const badge = document.getElementById(`stock_badge_${item.id}`);
+    if (badge) badge.innerText = `在庫: ${totalStock}枚`;
   });
+
   calcSummary();
+}
+  // フォーカス中（入力中）のinput要素でなければ値を書き換える（カーソルが勝手に外れるのを防ぐ）
+function updateInputVal(elemId, val) {
+  const el = document.getElementById(elemId);
+  if (el && document.activeElement !== el) {
+    if (parseInt(el.value, 10) !== parseInt(val, 10)) {
+      el.value = val;
+    }
+  }
 }
 
 function changeCount(itemId, key, delta) {
   const inv = storeDataMap[currentStoreId].inventory[itemId];
   inv[key] = Math.max(0, (inv[key] || 0) + delta);
+  
+  // 入力値と在庫バッジ、サマリーだけをピンポイント更新（画面が戻らない）
   renderItems(currentCategory);
   triggerAutoSave();
 }
@@ -473,10 +565,10 @@ function changeCount(itemId, key, delta) {
 function setCount(itemId, key, value) {
   const inv = storeDataMap[currentStoreId].inventory[itemId];
   inv[key] = Math.max(0, parseInt(value, 10) || 0);
-  renderItems(currentCategory);
+  
+  calcSummary();
   triggerAutoSave();
 }
-
 function getSummaryValues() {
   initStoreData(currentStoreId);
   const sData = storeDataMap[currentStoreId];
