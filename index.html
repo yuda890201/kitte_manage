@@ -416,16 +416,9 @@ function toggleHideItem(id) {
   const isHidden = !!sData.hiddenItems[id];
   sData.hiddenItems[id] = !isHidden;
   
-  const card = document.getElementById(`item-card-${id}`);
-  if (card) {
-    if (sData.hiddenItems[id]) {
-      card.classList.add('hidden-item');
-      card.querySelector('.btn-hide-toggle').innerText = '表示';
-    } else {
-      card.classList.remove('hidden-item');
-      card.querySelector('.btn-hide-toggle').innerText = '非表示';
-    }
-  }
+  // 即座にUIを更新してサマリーも再計算
+  renderItems(currentCategory);
+  saveToLocalStorage();
 }
 
 function renderItems(filterCat = 'all') {
@@ -434,7 +427,9 @@ function renderItems(filterCat = 'all') {
 
   initStoreData(currentStoreId);
   const sData = storeDataMap[currentStoreId];
+  if (!sData.hiddenItems) sData.hiddenItems = {};
 
+  // 初回のみカードを全生成（または再構築が必要な場合）
   if (container.children.length === 0) {
     masterData.forEach(item => {
       const isHidden = !!sData.hiddenItems[item.id];
@@ -461,7 +456,7 @@ function renderItems(filterCat = 'all') {
           <div class="item-title-area">
             <span class="item-name">${item.name}</span>
             <span class="item-price">¥${item.price}</span>
-            <button class="btn-hide-toggle" onclick="toggleHideItem(${item.id})">${isHidden ? '表示' : '非表示'}</button>
+            <button id="btn_hide_${item.id}" class="btn-hide-toggle" onclick="toggleHideItem(${item.id})">${isHidden ? '表示' : '非表示'}</button>
           </div>
           <span id="stock_badge_${item.id}" style="font-size:0.75rem; background:#eee; padding:3px 6px; border-radius:4px;">在庫: 0枚</span>
         </div>
@@ -471,23 +466,31 @@ function renderItems(filterCat = 'all') {
     });
   }
 
+  // 既存カードの状態（カテゴリフィルター、非表示状態、数値）を毎回の描画時に正しく同期する
   masterData.forEach(item => {
     const card = document.getElementById(`item-card-${item.id}`);
     if (!card) return;
 
     const isHidden = !!sData.hiddenItems[item.id];
-    if ((filterCat !== 'all' && item.category !== filterCat) || isHidden) {
+    const hideBtn = document.getElementById(`btn_hide_${item.id}`);
+
+    // カテゴリ一致チェック
+    const matchesCat = (filterCat === 'all' || item.category === filterCat);
+
+    if (!matchesCat) {
       card.style.display = 'none';
       return;
     } else {
       card.style.display = 'block';
     }
 
+    // 非表示状態の見た目とボタンテキストを確実に反映
     if (isHidden) {
-      card.className = 'item-card hidden-item';
-      return;
+      card.classList.add('hidden-item');
+      if (hideBtn) hideBtn.innerText = '表示';
     } else {
-      card.className = 'item-card';
+      card.classList.remove('hidden-item');
+      if (hideBtn) hideBtn.innerText = '非表示';
     }
 
     const inv = sData.inventory[item.id] || {};
