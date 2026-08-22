@@ -312,6 +312,10 @@ async function loadFromCloud() {
     initStoreData(currentStoreId);
     updateStoreDisplay();
     renderItems(currentCategory);
+
+    // 【追加】データの読み込みが完了した時に、日本語・英語の注意喚起ポップアップを表示
+    alert("最新データの読み込みが完了しました。\n入力が終わったら必ず「保存 (Save)」ボタンを押してください。\n\nLoading complete.\nPlease be sure to click the \"Save\" button after entering data.");
+
   } catch(e) {
     setSyncStatus("(オフライン稼働)");
   }
