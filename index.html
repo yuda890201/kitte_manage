@@ -810,8 +810,18 @@ function saveProductMaster() {
   if (!name || isNaN(price)) { alert("商品名と価格を正しく入力してください。"); return; }
 
   const newId = masterData.length > 0 ? Math.max(...masterData.map(p => p.id)) + 1 : 1;
+  
+  // 【修正】新規追加した商品にもデフォルトの印字座標（X: 200, Y: 600付近）を持たせる
   masterData.push({
-    id: newId, name, price, minStock: isNaN(minStock) ? 0 : minStock, unit: isNaN(unit) ? 10 : unit, category, hasSheets: true, x: 200, y: 600
+    id: newId, 
+    name, 
+    price, 
+    minStock: isNaN(minStock) ? 0 : minStock, 
+    unit: isNaN(unit) ? 10 : unit, 
+    category, 
+    hasSheets: true, 
+    x: 200, // ← ここでプレビュー用の初期X座標を設定
+    y: 600  // ← ここでプレビュー用の初期Y座標を設定
   });
   
   Object.keys(storeDataMap).forEach(sId => {
@@ -826,7 +836,8 @@ function saveProductMaster() {
   renderProductMasterList();
   renderItems(currentCategory);
   saveToLocalStorage();
-  alert("商品を追加しました！（保存ボタンを押すとクラウドに反映されます）");
+  
+  alert("商品を追加しました！\n※必要に応じて「プレビュー・座標」タブから印字位置（X, Y）を調整してください。");
 }
 
 function deleteProduct(id) {
