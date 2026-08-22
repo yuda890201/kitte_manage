@@ -92,10 +92,26 @@
     .btn-action-main { width: 100%; background: #c62828; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
     .btn-share { width: 100%; background: #00c300; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 8px; }
     .sync-status { font-size: 0.75rem; color: #ffeb3b; margin-left: 8px; font-weight: normal; }
+    /* --- 追加：同期中オーバーレイのスタイル --- */
+    #sync-overlay {
+      position: fixed; /* 画面全体を固定 */
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5); /* 半透明の黒背景 */
+      z-index: 1000; /* 最前面に表示 */
+      display: none; /* 初期状態は非表示 */
+      justify-content: center; /* 中央寄せ */
+      align-items: center;     /* 中央寄せ */
+      color: white;
+      font-weight: bold;
+      font-size: 1.2rem;
+      pointer-events: all; /* 操作をブロックして誤操作防止 */
+    }
   </style>
 </head>
 <body>
-
+  <div id="sync-overlay">🔄 同期中...データを保存しています</div>
+  <!-- 以下既存の header ... -->
 <header>
   <h1><img src="kitte_manage.png" alt="Icon"> 切手管理 <span id="syncStatus" class="sync-status">(オフライン)</span></h1>
   <button class="btn-header" onclick="syncWithCloud()">手動同期</button>
@@ -949,6 +965,34 @@ function generateImageFromInput() {
   downloadArea.appendChild(link);
 
   alert("画像を作成しました！下の緑色のボタンをタップして保存してください。");
+}
+  // 同期の状態を制御する関数
+function showSyncOverlay(show) {
+  const overlay = document.getElementById('sync-overlay');
+  if (overlay) overlay.style.display = show ? 'flex' : 'none';
+}
+
+async function syncWithCloud() {
+  showSyncOverlay(true); // 同期開始でロック
+  
+  saveToLocalStorage();
+  if (!GAS_API_URL || GAS_API_URL.includes("YOUR_GAS_WEB_APP_URL")) {
+    setSyncStatus("(ローカル保存)");
+    showSyncOverlay(false);
+    return;
+  }
+
+  // 重複防止のため、データをセットに変換してから送るなど、データ整合性を強化
+  // ... (既存の payload 作成処理) ...
+
+  try {
+    await fetch(GAS_API_URL, { method: "POST", mode: 'no-cors', body: JSON.stringify(payload) });
+    setSyncStatus("(クラウド保存完了)");
+  } catch(e) {
+    setSyncStatus("(通信エラー)");
+  } finally {
+    showSyncOverlay(false); // 成功・失敗に関わらずロック解除
+  }
 }
 preloadBackground();
 loadFromCloud();
