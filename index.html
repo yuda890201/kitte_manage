@@ -590,9 +590,15 @@ function getSummaryValues() {
     // 【重要】店舗ごとの個別設定（最低在庫・買受数）を取得
     const config = getStoreProductConfig(currentStoreId, item.id);
 
-    // 最低在庫数を下回っている場合、店舗ごとの買受単位（config.unit）を発注数とする
+// 最低在庫数を下回っている場合
     if (config.minStock > 0 && totalStock < config.minStock) {
-      const orderQty = config.unit; // 店舗別の買受数を使用
+      // 不足分を補うために、買受単位（config.unit）を何セット発注すべきか計算
+      // 例: 最低在庫40、現在庫0、買受単位20 の場合 -> 不足40 ÷ 買受単位20 = 2セット
+      let shortage = config.minStock - totalStock;
+      let unitSize = config.unit > 0 ? config.unit : 10;
+      let multiplier = Math.ceil(shortage / unitSize);
+      let orderQty = unitSize * multiplier; // 実際の総発注数（例: 20 × 2 = 40）
+
       const amt = orderQty * item.price;
       
       if (item.category === '印紙') { 
@@ -765,9 +771,14 @@ masterData.forEach(item => {
     // 店舗ごとの個別設定を取得
     const config = getStoreProductConfig(currentStoreId, item.id);
 
-    // 最低在庫数を下回っている場合、店舗別の最低在庫・買受数に基づいて印字
+    // 最低在庫数を下回っている場合、不足分に応じた発注数を計算して印字
     if (config.minStock > 0 && totalStock < config.minStock) {
-      ctx.fillText(`${item.name}${space1}${config.unit}${space2}${(config.unit * item.price).toLocaleString()}`, item.x, item.y);
+      let shortage = config.minStock - totalStock;
+      let unitSize = config.unit > 0 ? config.unit : 10;
+      let multiplier = Math.ceil(shortage / unitSize);
+      let orderQty = unitSize * multiplier; // 正しい発注数（例: 40）
+
+      ctx.fillText(`${item.name}${space1}${orderQty}${space2}${(orderQty * item.price).toLocaleString()}`, item.x, item.y);
     }
   });
 
