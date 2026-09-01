@@ -575,18 +575,36 @@ function getSummaryValues() {
   masterData.forEach(item => {
     if (sData.hiddenItems && sData.hiddenItems[item.id]) return;
     const inv = sData.inventory[item.id];
-    let totalStock = item.isLetterPack ? (inv.single || 0) * 1 + (inv.bundle20 || 0) * 20 : (inv.sheet100 || 0) * 100;
-    if (!item.isLetterPack) for (let i = 1; i <= 10; i++) totalStock += (inv['s' + i] || 0) * i;
+    
+    // レターパックと通常商品の在庫計算
+    let totalStock = 0;
+    if (item.isLetterPack) {
+      totalStock = (inv.single || 0) * 1 + (inv.bundle20 || 0) * 20;
+    } else {
+      totalStock = (inv.sheet100 || 0) * 100;
+      for (let i = 1; i <= 10; i++) {
+        totalStock += (inv['s' + i] || 0) * i;
+      }
+    }
 
-    // 【修正】店舗ごとの個別設定を取得
+    // 【重要】店舗ごとの個別設定（最低在庫・買受数）を取得
     const config = getStoreProductConfig(currentStoreId, item.id);
 
+    // 最低在庫数を下回っている場合、店舗ごとの買受単位（config.unit）を発注数とする
     if (config.minStock > 0 && totalStock < config.minStock) {
-      const orderQty = config.unit;
+      const orderQty = config.unit; // 店舗別の買受数を使用
       const amt = orderQty * item.price;
-      if (item.category === '印紙') { revAmt += amt; revQty += orderQty; }
-      else if (item.category === '切手') { stampAmt += amt; stampQty += orderQty; }
-      else { postAmt += amt; postQty += orderQty; }
+      
+      if (item.category === '印紙') { 
+        revAmt += amt; 
+        revQty += orderQty; 
+      } else if (item.category === '切手') { 
+        stampAmt += amt; 
+        stampQty += orderQty; 
+      } else { 
+        postAmt += amt; 
+        postQty += orderQty; 
+      }
     }
   });
 
@@ -734,7 +752,6 @@ masterData.forEach(item => {
     if (sData.hiddenItems && sData.hiddenItems[item.id]) return;
     const inv = sData.inventory[item.id] || {};
     
-    // 【修正】レターパック（isLetterPack）と通常商品の在庫計算を正しく分岐
     let totalStock = 0;
     if (item.isLetterPack) {
       totalStock = (inv.single || 0) * 1 + (inv.bundle20 || 0) * 20;
@@ -748,7 +765,7 @@ masterData.forEach(item => {
     // 店舗ごとの個別設定を取得
     const config = getStoreProductConfig(currentStoreId, item.id);
 
-    // 最低在庫数を下回っている場合のみ、プレビュー（請求書）に印字する
+    // 最低在庫数を下回っている場合、店舗別の最低在庫・買受数に基づいて印字
     if (config.minStock > 0 && totalStock < config.minStock) {
       ctx.fillText(`${item.name}${space1}${config.unit}${space2}${(config.unit * item.price).toLocaleString()}`, item.x, item.y);
     }
