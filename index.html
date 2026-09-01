@@ -771,13 +771,15 @@ masterData.forEach(item => {
     // 店舗ごとの個別設定を取得
     const config = getStoreProductConfig(currentStoreId, item.id);
 
-    // 最低在庫数を下回っている場合、不足分に応じた発注数を計算して印字
+    // 最低在庫数を下回っている場合
     if (config.minStock > 0 && totalStock < config.minStock) {
+      // 【修正】サマリーと同じロジックで不足分から正しい発注数（orderQty）を算出
       let shortage = config.minStock - totalStock;
       let unitSize = config.unit > 0 ? config.unit : 10;
       let multiplier = Math.ceil(shortage / unitSize);
-      let orderQty = unitSize * multiplier; // 正しい発注数（例: 40）
+      let orderQty = unitSize * multiplier; // 正しい総発注数（例: 40など）
 
+      // 印字内容の数量と金額を orderQty ベースで描画
       ctx.fillText(`${item.name}${space1}${orderQty}${space2}${(orderQty * item.price).toLocaleString()}`, item.x, item.y);
     }
   });
