@@ -9,6 +9,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="切手管理">
 
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
   <style>
     :root {
       --primary: #1976d2; --accent: #e53935; --bg: #f4f6f8;
@@ -179,6 +182,12 @@
 
   <div id="view-master" class="section-view">
     <div class="master-card">
+      <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;">☁️ Firebase 連携</h3>
+      <p style="font-size:0.8rem; color:#666; margin-bottom:8px;" id="firebaseStatusText">状態を確認中...</p>
+      <button class="btn-submit-master" style="grid-column:unset; background:#ff9800;" onclick="migrateFromGAS()">📥 旧スプレッドシート(GAS)のデータをFirebaseへ移行</button>
+    </div>
+
+    <div class="master-card">
       <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;">🏪 店舗設定</h3>
       <div class="master-form">
         <input type="text" id="storeNameInput" placeholder="店舗名" style="grid-column: span 2;">
@@ -197,7 +206,27 @@
 </div>
 
 <script>
-const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzaqg7CwWgX5AOpUL-b8sARywAw_YAptFV63HX7CdByDNl5Ku46xCnc2CkKG0qazJK8/exec";
+// Firebaseコンソール（プロジェクトの設定 > 全般 > マイアプリ）で発行される値に置き換えてください
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+// 移行ボタンからのみ使用する、旧スプレッドシート連携(GAS)のWebアプリURL
+const OLD_GAS_API_URL = "https://script.google.com/macros/s/AKfycbzaqg7CwWgX5AOpUL-b8sARywAw_YAptFV63HX7CdByDNl5Ku46xCnc2CkKG0qazJK8/exec";
+
+const isFirebaseConfigured = !!(firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("YOUR_"));
+let db = null;
+if (isFirebaseConfigured) {
+  try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+  } catch (e) { db = null; }
+}
+const stateDocRef = () => db.collection('kitteManage').doc('main');
 
 let storesData = [{ id: 1, name: "1号店" }];
 let currentStoreId = parseInt(localStorage.getItem('kitte_current_store_id'), 10) || 1;
@@ -281,40 +310,26 @@ async function loadFromCloud() {
     setSyncStatus("(オフラインキャッシュ)");
   }
 
-  if (!GAS_API_URL || GAS_API_URL.includes("YOUR_GAS_WEB_APP_URL")) return;
+  updateFirebaseStatusText();
+  if (!isFirebaseConfigured) return;
   setSyncStatus("(読み込み中...)");
   try {
-    const res = await fetch(GAS_API_URL, { mode: 'cors' });
-    const json = await res.json();
-    if (json.stores && json.stores.length > 0) storesData = json.stores;
-    if (json.products && json.products.length > 0) masterData = json.products;
-    if (json.layout && json.layout.length > 0) specialPrintData = sanitizeSpecialPrintData(json.layout);
-// loadFromCloud 内の inventory 読み込み部分を以下のように修正
-    if (json.inventory && json.inventory.length > 0) {
-      storeDataMap = {};
-      json.inventory.forEach(inv => {
-        if (!storeDataMap[inv.storeId]) storeDataMap[inv.storeId] = { inventory: {}, hiddenItems: {}, productConfigs: {} };
-        try {
-          const parsed = JSON.parse(inv.dataJson);
-          if (parsed.inv) storeDataMap[inv.storeId].inventory[inv.productId] = parsed.inv;
-          if (parsed.hidden) {
-            if (!storeDataMap[inv.storeId].hiddenItems) storeDataMap[inv.storeId].hiddenItems = {};
-            storeDataMap[inv.storeId].hiddenItems[inv.productId] = true;
-          }
-          if (parsed.config) {
-            if (!storeDataMap[inv.storeId].productConfigs) storeDataMap[inv.storeId].productConfigs = {};
-            storeDataMap[inv.storeId].productConfigs[inv.productId] = parsed.config;
-          }
-        } catch(e) {}
-      });
+    const snap = await stateDocRef().get();
+    if (snap.exists) {
+      const data = snap.data();
+      if (data.stores && data.stores.length > 0) storesData = data.stores;
+      if (data.products && data.products.length > 0) masterData = data.products;
+      if (data.layout && data.layout.length > 0) specialPrintData = sanitizeSpecialPrintData(data.layout);
+      if (data.storeDataMap) storeDataMap = data.storeDataMap;
+      saveToLocalStorage();
+      setSyncStatus("(最新)");
+    } else {
+      setSyncStatus("(未保存・新規)");
     }
-    saveToLocalStorage();
-    setSyncStatus("(最新)");
     initStoreData(currentStoreId);
     updateStoreDisplay();
     renderItems(currentCategory);
 
-    // 【追加】データの読み込みが完了した時に、日本語・英語の注意喚起ポップアップを表示
     alert("最新データの読み込みが完了しました。\n入力が終わったら必ず「保存 (Save)」ボタンを押してください。\n\nLoading complete.\nPlease be sure to click the \"Save\" button after entering data.");
 
   } catch(e) {
@@ -331,45 +346,82 @@ function showSyncOverlay(show) {
 async function syncWithCloud() {
   showSyncOverlay(true);
   saveToLocalStorage();
-  if (!GAS_API_URL || GAS_API_URL.includes("YOUR_GAS_WEB_APP_URL")) {
+  if (!isFirebaseConfigured) {
     setSyncStatus("(ローカル保存)");
     showSyncOverlay(false);
     return;
   }
   setSyncStatus("(保存中...)");
-  
-  let inventoryList = [];
-  Object.keys(storeDataMap).forEach(sId => {
-    const sData = storeDataMap[sId];
-    const allProdIds = new Set([
-      ...Object.keys(sData.inventory), 
-      ...Object.keys(sData.hiddenItems || {}),
-      ...Object.keys(sData.productConfigs || {})
-    ]);
-    
-    allProdIds.forEach(pId => {
-      inventoryList.push({
-        storeId: sId,
-        productId: pId,
-        dataJson: JSON.stringify({
-          inv: sData.inventory[pId] || {},
-          hidden: sData.hiddenItems && sData.hiddenItems[pId] ? true : false,
-          config: sData.productConfigs && sData.productConfigs[pId] ? sData.productConfigs[pId] : null
-        })
-      });
-    });
-  });
 
   specialPrintData = sanitizeSpecialPrintData(specialPrintData);
-  const payload = { stores: storesData, products: masterData, inventory: inventoryList, layout: specialPrintData };
+  const payload = {
+    stores: storesData,
+    products: masterData,
+    layout: specialPrintData,
+    storeDataMap: storeDataMap,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
 
   try {
-    await fetch(GAS_API_URL, { method: "POST", mode: 'no-cors', body: JSON.stringify(payload) });
+    await stateDocRef().set(payload);
     setSyncStatus("(保存完了)");
-    alert("クラウドへの保存が完了しました！");
+    alert("クラウド(Firebase)への保存が完了しました！");
   } catch(e) {
     setSyncStatus("(通信エラー)");
-    alert("保存に失敗しました。通信環境を確認してください。");
+    alert("保存に失敗しました。通信環境またはFirebase設定を確認してください。");
+  } finally {
+    showSyncOverlay(false);
+  }
+}
+
+async function migrateFromGAS() {
+  if (!isFirebaseConfigured) {
+    alert("先にindex.html内のfirebaseConfigを、ご自身のFirebaseプロジェクトの値に設定してください。");
+    return;
+  }
+  if (!confirm("旧スプレッドシート(GAS)からデータを取得し、Firebaseへ書き込みます。\n現在Firebaseに保存されているデータは上書きされます。よろしいですか？")) return;
+
+  showSyncOverlay(true);
+  try {
+    const res = await fetch(OLD_GAS_API_URL, { mode: 'cors' });
+    const json = await res.json();
+
+    const migratedStoreDataMap = {};
+    if (json.inventory && json.inventory.length > 0) {
+      json.inventory.forEach(inv => {
+        if (!migratedStoreDataMap[inv.storeId]) migratedStoreDataMap[inv.storeId] = { inventory: {}, hiddenItems: {}, productConfigs: {} };
+        try {
+          const parsed = JSON.parse(inv.dataJson);
+          if (parsed.inv) migratedStoreDataMap[inv.storeId].inventory[inv.productId] = parsed.inv;
+          if (parsed.hidden) migratedStoreDataMap[inv.storeId].hiddenItems[inv.productId] = true;
+          if (parsed.config) migratedStoreDataMap[inv.storeId].productConfigs[inv.productId] = parsed.config;
+        } catch(e) {}
+      });
+    }
+
+    storesData = (json.stores && json.stores.length > 0) ? json.stores : storesData;
+    masterData = (json.products && json.products.length > 0) ? json.products : masterData;
+    specialPrintData = (json.layout && json.layout.length > 0) ? sanitizeSpecialPrintData(json.layout) : specialPrintData;
+    storeDataMap = migratedStoreDataMap;
+
+    await stateDocRef().set({
+      stores: storesData,
+      products: masterData,
+      layout: specialPrintData,
+      storeDataMap: storeDataMap,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    saveToLocalStorage();
+    initStoreData(currentStoreId);
+    updateStoreDisplay();
+    renderStoreMasterList();
+    renderProductMasterList();
+    renderItems(currentCategory);
+
+    alert("旧データの移行が完了しました。Firebaseへの保存も完了しています。");
+  } catch(e) {
+    alert("移行に失敗しました。旧GASのURLが有効か、通信環境をご確認ください。\n" + e.message);
   } finally {
     showSyncOverlay(false);
   }
@@ -378,6 +430,14 @@ async function syncWithCloud() {
 function setSyncStatus(txt) {
   const el = document.getElementById('syncStatus');
   if (el) el.innerText = txt;
+}
+
+function updateFirebaseStatusText() {
+  const el = document.getElementById('firebaseStatusText');
+  if (!el) return;
+  el.innerText = isFirebaseConfigured
+    ? "✅ Firebaseに接続設定済みです。"
+    : "⚠️ 未設定です。index.html内のfirebaseConfigにご自身のFirebaseプロジェクトの値を設定してください。";
 }
 
 function preloadBackground() {
@@ -417,7 +477,7 @@ function switchMode(mode, btn) {
   const target = document.getElementById('view-' + mode);
   if (target) target.classList.add('active');
   if (mode === 'preview') { updateCanvas(); renderCoordManager(); }
-  if (mode === 'master') { renderStoreMasterList(); renderProductMasterList(); }
+  if (mode === 'master') { renderStoreMasterList(); renderProductMasterList(); updateFirebaseStatusText(); }
 }
 
 function updateStoreDisplay() {
