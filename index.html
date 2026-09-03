@@ -184,7 +184,6 @@
     <div class="master-card">
       <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;">☁️ Firebase 連携</h3>
       <p style="font-size:0.8rem; color:#666; margin-bottom:8px;" id="firebaseStatusText">状態を確認中...</p>
-      <button class="btn-submit-master" style="grid-column:unset; background:#ff9800;" onclick="migrateFromGAS()">📥 旧スプレッドシート(GAS)のデータをFirebaseへ移行</button>
     </div>
 
     <div class="master-card">
@@ -215,8 +214,6 @@ const firebaseConfig = {
   messagingSenderId: "452516991360",
   appId: "1:452516991360:web:7cf764799033faf9e57165"
 };
-// 移行ボタンからのみ使用する、旧スプレッドシート連携(GAS)のWebアプリURL
-const OLD_GAS_API_URL = "https://script.google.com/macros/s/AKfycbzaqg7CwWgX5AOpUL-b8sARywAw_YAptFV63HX7CdByDNl5Ku46xCnc2CkKG0qazJK8/exec";
 
 const isFirebaseConfigured = !!(firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("YOUR_"));
 let db = null;
@@ -369,59 +366,6 @@ async function syncWithCloud() {
   } catch(e) {
     setSyncStatus("(通信エラー)");
     alert("保存に失敗しました。通信環境またはFirebase設定を確認してください。");
-  } finally {
-    showSyncOverlay(false);
-  }
-}
-
-async function migrateFromGAS() {
-  if (!isFirebaseConfigured) {
-    alert("先にindex.html内のfirebaseConfigを、ご自身のFirebaseプロジェクトの値に設定してください。");
-    return;
-  }
-  if (!confirm("旧スプレッドシート(GAS)からデータを取得し、Firebaseへ書き込みます。\n現在Firebaseに保存されているデータは上書きされます。よろしいですか？")) return;
-
-  showSyncOverlay(true);
-  try {
-    const res = await fetch(OLD_GAS_API_URL, { mode: 'cors' });
-    const json = await res.json();
-
-    const migratedStoreDataMap = {};
-    if (json.inventory && json.inventory.length > 0) {
-      json.inventory.forEach(inv => {
-        if (!migratedStoreDataMap[inv.storeId]) migratedStoreDataMap[inv.storeId] = { inventory: {}, hiddenItems: {}, productConfigs: {} };
-        try {
-          const parsed = JSON.parse(inv.dataJson);
-          if (parsed.inv) migratedStoreDataMap[inv.storeId].inventory[inv.productId] = parsed.inv;
-          if (parsed.hidden) migratedStoreDataMap[inv.storeId].hiddenItems[inv.productId] = true;
-          if (parsed.config) migratedStoreDataMap[inv.storeId].productConfigs[inv.productId] = parsed.config;
-        } catch(e) {}
-      });
-    }
-
-    storesData = (json.stores && json.stores.length > 0) ? json.stores : storesData;
-    masterData = (json.products && json.products.length > 0) ? json.products : masterData;
-    specialPrintData = (json.layout && json.layout.length > 0) ? sanitizeSpecialPrintData(json.layout) : specialPrintData;
-    storeDataMap = migratedStoreDataMap;
-
-    await stateDocRef().set({
-      stores: storesData,
-      products: masterData,
-      layout: specialPrintData,
-      storeDataMap: storeDataMap,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-    saveToLocalStorage();
-    initStoreData(currentStoreId);
-    updateStoreDisplay();
-    renderStoreMasterList();
-    renderProductMasterList();
-    renderItems(currentCategory);
-
-    alert("旧データの移行が完了しました。Firebaseへの保存も完了しています。");
-  } catch(e) {
-    alert("移行に失敗しました。旧GASのURLが有効か、通信環境をご確認ください。\n" + e.message);
   } finally {
     showSyncOverlay(false);
   }
