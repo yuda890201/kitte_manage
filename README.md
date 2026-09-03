@@ -24,10 +24,7 @@ service cloud.firestore {
 
 ※誰でも読み書きできる設定です。第三者にURLやFirebase設定値が知られないよう取り扱いに注意してください。
 
-## 旧スプレッドシート(GAS)データの移行
+## 旧構成について
 
-以前の Google Apps Script 連携版からの移行用に、「⚙️ マスタ管理」タブに
-「📥 旧スプレッドシート(GAS)のデータをFirebaseへ移行」ボタンがあります。
-Firebase設定を済ませた状態でこのボタンを押すと、旧GASのWebアプリURLからデータを取得し、
-Firestoreへ書き込みます（Firestore側の既存データは上書きされます）。移行が完了したら
-`index.html` 内の `OLD_GAS_API_URL` や旧GASプロジェクトは削除して構いません。
+以前は Google Apps Script（スプレッドシート連携）をバックエンドにしていましたが、
+Firebase（Firestore）への移行が完了したため廃止しました。
