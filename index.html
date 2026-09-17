@@ -30,10 +30,10 @@
       pointer-events: all;
     }
 
-    header { background: var(--primary); color: white; padding: 14px 16px; position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    header h1 { font-size: 1.1rem; font-weight: bold; display: flex; align-items: center; gap: 8px; }
+    header { background: var(--primary); color: white; padding: 10px 16px; position: sticky; top: 0; z-index: 100; display: flex; flex-wrap: wrap; row-gap: 8px; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    header h1 { font-size: 1.1rem; font-weight: bold; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
     header h1 img { width: 24px; height: 24px; border-radius: 4px; object-fit: cover; }
-    .btn-header { background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 12px; border-radius: 4px; font-size: 0.85rem; cursor: pointer; font-weight: bold; }
+    .btn-header { background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 12px; border-radius: 4px; font-size: 0.85rem; cursor: pointer; font-weight: bold; white-space: nowrap; }
     
     .container { max-width: 1200px; margin: 0 auto; padding: 12px; }
     
@@ -94,13 +94,14 @@
 
     .master-card { background: white; border-radius: 10px; padding: 14px; margin-bottom: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 5px solid #4caf50; }
     .master-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+    .master-form > * { min-width: 0; }
     .master-form input, .master-form select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; }
     .btn-submit-master { grid-column: span 2; background: #4caf50; color: white; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer; }
     .master-list-item { display: flex; justify-content: space-between; align-items: center; background: #fafafa; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px; font-size: 0.85rem; }
     .btn-del { background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; }
 
     .btn-action-main { width: 100%; background: #c62828; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
-    .sync-status { font-size: 0.75rem; color: #ffeb3b; margin-left: 8px; font-weight: normal; }
+    .sync-status { font-size: 0.75rem; color: #ffeb3b; margin-left: 8px; font-weight: normal; white-space: nowrap; }
 
     #login-overlay {
       position: fixed; inset: 0; background: var(--bg); z-index: 2000;
@@ -151,7 +152,7 @@
       <option value="en">English</option>
       <option value="ne">नेपाली</option>
     </select>
-    <button class="btn-header" onclick="syncWithCloud()" data-i18n="header_save">💾 保存 (Save)</button>
+    <button class="btn-header" onclick="syncWithCloud()" data-i18n="header_save">💾 保存</button>
     <button class="btn-header" onclick="signOutUser()" data-i18n="header_logout">ログアウト</button>
   </div>
 </header>
@@ -240,6 +241,26 @@
       <div id="store-list-container" style="margin-top: 10px;"></div>
     </div>
 
+    <div class="master-card">
+      <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;" data-i18n="product_add_title">➕ 商品の追加</h3>
+      <div class="master-form">
+        <input type="text" id="prodNameInput" placeholder="商品名" data-i18n-placeholder="prod_name_placeholder">
+        <input type="number" id="prodPriceInput" placeholder="価格(円)" data-i18n-placeholder="prod_price_placeholder">
+        <input type="number" id="prodMinInput" placeholder="最低在庫" data-i18n-placeholder="prod_min_placeholder">
+        <input type="number" id="prodUnitInput" placeholder="買受単位" data-i18n-placeholder="prod_unit_placeholder">
+        <select id="prodCatInput" style="grid-column: span 2;">
+          <option value="印紙" data-i18n="cat_stamp_duty">収入印紙</option>
+          <option value="切手" data-i18n="cat_stamps">切手類</option>
+          <option value="葉書" data-i18n="cat_postcards">葉書・レターパック</option>
+        </select>
+        <label style="grid-column: span 2; font-size:0.8rem; color:#666; display:flex; align-items:center; gap:6px;">
+          <input type="checkbox" id="prodLetterPackInput">
+          <span data-i18n="prod_letterpack_label">レターパック形式（バラ / 1束20）で数える</span>
+        </label>
+        <button class="btn-submit-master" onclick="saveProductMaster()" data-i18n="btn_add_product">商品を追加</button>
+      </div>
+    </div>
+
 <div class="master-card">
       <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;" data-i18n="product_settings_title">📦 店舗別 商品設定（最低在庫・買受数）</h3>
       <p style="font-size:0.75rem; color:#666; margin-bottom:8px;"><span data-i18n="product_settings_desc_before">※現在選択中の店舗（</span><span id="masterStoreName" style="font-weight:bold; color:#1565c0;">1号店</span><span data-i18n="product_settings_desc_after">）の設定を変更できます。</span></p>
@@ -288,7 +309,25 @@ async function handleLoginSubmit(e) {
   try {
     await auth.signInWithEmailAndPassword(SHARED_LOGIN_EMAIL, pin);
   } catch (err) {
-    errEl.textContent = t('login_error_wrong_pin');
+    errEl.textContent = loginErrorMessage(err);
+  }
+}
+
+function loginErrorMessage(err) {
+  const code = (err && err.code) || '';
+  switch (code) {
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+    case 'auth/invalid-login-credentials':
+    case 'auth/user-not-found':
+    case 'auth/invalid-email':
+      return t('login_error_wrong_pin');
+    case 'auth/too-many-requests':
+      return t('login_error_too_many');
+    case 'auth/network-request-failed':
+      return t('login_error_network');
+    default:
+      return t('login_error_generic', {code: code || 'unknown'});
   }
 }
 
@@ -307,7 +346,7 @@ const I18N = {
     login_error_no_config: "Firebase設定が未完了です。",
     login_error_no_config_full: "Firebase設定が未完了です。index.html内のfirebaseConfigを確認してください。",
     login_error_wrong_pin: "PINコードが正しくありません。",
-    header_save: "💾 保存 (Save)",
+    header_save: "💾 保存",
     header_logout: "ログアウト",
     logout_confirm: "ログアウトしますか？",
     sync_offline: "(オフライン)",
@@ -320,7 +359,7 @@ const I18N = {
     sync_saved: "(保存完了)",
     sync_error: "(通信エラー)",
     sync_local_only: "(ローカル保存)",
-    data_loaded_alert: "最新データの読み込みが完了しました。\n入力が終わったら必ず「保存 (Save)」ボタンを押してください。",
+    data_loaded_alert: "最新データの読み込みが完了しました。\n入力が終わったら必ず「保存」ボタンを押してください。",
     save_success_alert: "クラウド(Firebase)への保存が完了しました！",
     save_error_alert: "保存に失敗しました。通信環境またはFirebase設定を確認してください。",
     store_bar_label: "🏪 現在の店舗: ",
@@ -342,6 +381,7 @@ const I18N = {
     slot_bundle20: "1束(20)",
     slot_sheet100: "100枚",
     slot_sheet_n: "{n}枚",
+    slot_sheet_one: "1枚",
     btn_show: "表示",
     btn_hide: "非表示",
     stock_badge: "在庫: {n}枚",
@@ -376,7 +416,20 @@ const I18N = {
     confirm_delete_store: "この店舗を削除しますか？",
     alert_store_switched: "店舗を切り替えました。",
     image_generated_link_text: "✅ 画像が生成されました【タップして保存】",
-    alert_image_saved: "保存と画像作成が完了しました！下の緑色のボタンをタップして保存してください。"
+    alert_image_saved: "保存と画像作成が完了しました！下の緑色のボタンをタップして保存してください。",
+    product_add_title: "➕ 商品の追加",
+    prod_name_placeholder: "商品名",
+    prod_price_placeholder: "価格(円)",
+    prod_min_placeholder: "最低在庫",
+    prod_unit_placeholder: "買受単位",
+    prod_letterpack_label: "レターパック形式（バラ / 1束20）で数える",
+    btn_add_product: "商品を追加",
+    alert_product_name_price_required: "商品名と価格を正しく入力してください。",
+    alert_product_added: "商品を追加しました！\n※必要に応じて「プレビュー・座標」タブから印字位置（X, Y）を調整してください。",
+    confirm_delete_product: "この商品を削除しますか？（全店舗の在庫・設定データも削除されます）",
+    login_error_too_many: "試行回数が多すぎます。しばらく待ってからお試しください。",
+    login_error_network: "通信エラーです。ネットワーク環境を確認してください。",
+    login_error_generic: "ログインに失敗しました。({code})"
   },
   en: {
     app_title: "Stamp Manager",
@@ -421,7 +474,8 @@ const I18N = {
     slot_single: "Loose",
     slot_bundle20: "Bundle (20)",
     slot_sheet100: "100 sheets",
-    slot_sheet_n: "{n} sheet(s)",
+    slot_sheet_n: "{n} sheets",
+    slot_sheet_one: "1 sheet",
     btn_show: "Show",
     btn_hide: "Hide",
     stock_badge: "Stock: {n}",
@@ -456,7 +510,20 @@ const I18N = {
     confirm_delete_store: "Delete this store?",
     alert_store_switched: "Store switched.",
     image_generated_link_text: "✅ Image generated [Tap to save]",
-    alert_image_saved: "Save and image generation complete! Tap the green button below to save."
+    alert_image_saved: "Save and image generation complete! Tap the green button below to save.",
+    product_add_title: "➕ Add Product",
+    prod_name_placeholder: "Product name",
+    prod_price_placeholder: "Price (¥)",
+    prod_min_placeholder: "Min stock",
+    prod_unit_placeholder: "Order unit",
+    prod_letterpack_label: "Count as Letter Pack (Loose / Bundle of 20)",
+    btn_add_product: "Add Product",
+    alert_product_name_price_required: "Please enter a valid product name and price.",
+    alert_product_added: "Product added!\n※If needed, adjust its print position (X, Y) in the \"Preview & Position\" tab.",
+    confirm_delete_product: "Delete this product? (Its stock and settings for every store will also be deleted.)",
+    login_error_too_many: "Too many attempts. Please wait a while and try again.",
+    login_error_network: "Network error. Please check your connection.",
+    login_error_generic: "Login failed. ({code})"
   },
   ne: {
     app_title: "टिकट व्यवस्थापन",
@@ -467,7 +534,7 @@ const I18N = {
     login_error_no_config: "Firebase कन्फिगर गरिएको छैन।",
     login_error_no_config_full: "Firebase कन्फिगर गरिएको छैन। index.html भित्रको firebaseConfig जाँच गर्नुहोस्।",
     login_error_wrong_pin: "PIN कोड मिलेन।",
-    header_save: "💾 सुरक्षित गर्नुहोस्",
+    header_save: "💾 सुरक्षित",
     header_logout: "लगआउट",
     logout_confirm: "लगआउट गर्ने हो?",
     sync_offline: "(अफलाइन)",
@@ -480,7 +547,7 @@ const I18N = {
     sync_saved: "(सुरक्षित भयो)",
     sync_error: "(जडान त्रुटि)",
     sync_local_only: "(स्थानीय मात्र सुरक्षित)",
-    data_loaded_alert: "पछिल्लो डाटा लोड भयो।\nडाटा प्रविष्ट गरिसकेपछि अनिवार्य रूपमा \"सुरक्षित गर्नुहोस् (Save)\" बटन थिच्नुहोस्।",
+    data_loaded_alert: "पछिल्लो डाटा लोड भयो।\nडाटा प्रविष्ट गरिसकेपछि अनिवार्य रूपमा \"सुरक्षित\" बटन थिच्नुहोस्।",
     save_success_alert: "क्लाउड (Firebase) मा सुरक्षित भयो!",
     save_error_alert: "सुरक्षित गर्न असफल भयो। इन्टरनेट वा Firebase सेटिङ जाँच गर्नुहोस्।",
     store_bar_label: "🏪 हालको पसल: ",
@@ -502,6 +569,7 @@ const I18N = {
     slot_bundle20: "बन्डल (20)",
     slot_sheet100: "100 शीट",
     slot_sheet_n: "{n} शीट",
+    slot_sheet_one: "1 शीट",
     btn_show: "देखाउनुहोस्",
     btn_hide: "लुकाउनुहोस्",
     stock_badge: "स्टक: {n}",
@@ -536,7 +604,20 @@ const I18N = {
     confirm_delete_store: "यो पसल मेटाउने हो?",
     alert_store_switched: "पसल बदलियो।",
     image_generated_link_text: "✅ तस्बिर बन्यो [सुरक्षित गर्न ट्याप गर्नुहोस्]",
-    alert_image_saved: "सुरक्षित र तस्बिर निर्माण पूरा भयो! तल हरियो बटन ट्याप गरेर सुरक्षित गर्नुहोस्।"
+    alert_image_saved: "सुरक्षित र तस्बिर निर्माण पूरा भयो! तल हरियो बटन ट्याप गरेर सुरक्षित गर्नुहोस्।",
+    product_add_title: "➕ उत्पादन थप्नुहोस्",
+    prod_name_placeholder: "उत्पादनको नाम",
+    prod_price_placeholder: "मूल्य (¥)",
+    prod_min_placeholder: "न्यूनतम स्टक",
+    prod_unit_placeholder: "अर्डर एकाइ",
+    prod_letterpack_label: "लेटर प्याक रूपमा गणना (एकल / 20 को बन्डल)",
+    btn_add_product: "उत्पादन थप्नुहोस्",
+    alert_product_name_price_required: "कृपया सही उत्पादनको नाम र मूल्य प्रविष्ट गर्नुहोस्।",
+    alert_product_added: "उत्पादन थपियो!\n※आवश्यक भए \"पूर्वावलोकन र स्थिति\" ट्याबबाट छपाइ स्थिति (X, Y) मिलाउनुहोस्।",
+    confirm_delete_product: "यो उत्पादन मेटाउने हो? (सबै पसलको स्टक र सेटिङ पनि मेटिनेछ।)",
+    login_error_too_many: "धेरै पटक प्रयास भयो। केही समयपछि पुनः प्रयास गर्नुहोस्।",
+    login_error_network: "जडान त्रुटि। इन्टरनेट जाँच गर्नुहोस्।",
+    login_error_generic: "लगइन असफल भयो। ({code})"
   }
 };
 
@@ -822,8 +903,9 @@ function renderItems(filterCat = 'all') {
   const sData = storeDataMap[currentStoreId];
   if (!sData.hiddenItems) sData.hiddenItems = {};
 
-  // 初回のみカードを全生成（または再構築が必要な場合）
-  if (container.children.length === 0) {
+  // カード枚数が商品数と合わない時（初回・商品の追加削除・言語切替後）は全て作り直す
+  if (container.children.length !== masterData.length) {
+    container.innerHTML = '';
     masterData.forEach(item => {
       const isHidden = !!sData.hiddenItems[item.id];
       const inv = sData.inventory[item.id] || {};
@@ -840,7 +922,7 @@ function renderItems(filterCat = 'all') {
       } else {
         slotsHtml += `<div class="slot-box"><div class="slot-label">${t('slot_sheet100')}</div><div class="vertical-stepper"><button class="btn-step-v" onclick="changeCount(${item.id}, 'sheet100', 1)">▲</button><input type="number" id="input_${item.id}_sheet100" class="slot-input" value="${inv.sheet100 || 0}" onchange="setCount(${item.id}, 'sheet100', this.value)"><button class="btn-step-v" onclick="changeCount(${item.id}, 'sheet100', -1)">▼</button></div></div>`;
         for (let i = 1; i <= 10; i++) {
-          slotsHtml += `<div class="slot-box"><div class="slot-label">${t('slot_sheet_n', {n: i})}</div><div class="vertical-stepper"><button class="btn-step-v" onclick="changeCount(${item.id}, 's${i}', 1)">▲</button><input type="number" id="input_${item.id}_s${i}" class="slot-input" value="${inv['s' + i] || 0}" onchange="setCount(${item.id}, 's${i}', this.value)"><button class="btn-step-v" onclick="changeCount(${item.id}, 's${i}', -1)">▼</button></div></div>`;
+          slotsHtml += `<div class="slot-box"><div class="slot-label">${i === 1 ? t('slot_sheet_one') : t('slot_sheet_n', {n: i})}</div><div class="vertical-stepper"><button class="btn-step-v" onclick="changeCount(${item.id}, 's${i}', 1)">▲</button><input type="number" id="input_${item.id}_s${i}" class="slot-input" value="${inv['s' + i] || 0}" onchange="setCount(${item.id}, 's${i}', this.value)"><button class="btn-step-v" onclick="changeCount(${item.id}, 's${i}', -1)">▼</button></div></div>`;
         }
       }
 
@@ -928,7 +1010,7 @@ function changeCount(itemId, key, delta) {
 function setCount(itemId, key, value) {
   const inv = storeDataMap[currentStoreId].inventory[itemId];
   inv[key] = Math.max(0, parseInt(value, 10) || 0);
-  calcSummary();
+  renderItems(currentCategory);
   saveToLocalStorage();
 }
 
@@ -1206,10 +1288,10 @@ function renderProductMasterList() {
     const div = document.createElement('div');
     div.className = 'master-list-item';
     div.style.display = 'grid';
-    div.style.gridTemplateColumns = '1.2fr 1fr 1fr';
+    div.style.gridTemplateColumns = '1.2fr 1fr 1fr auto';
     div.style.gap = '8px';
     div.style.alignItems = 'center';
-    
+
     div.innerHTML = `
       <span><b>${p.name}</b><br><small style="color:#666;">${t('price_label', {price: p.price})}</small></span>
       <div>
@@ -1220,6 +1302,7 @@ function renderProductMasterList() {
         <label style="font-size:0.7rem; color:#666; display:block;">${t('unit_label')}</label>
         <input type="number" class="slot-input" value="${config.unit}" onchange="updateStoreProductConfig(${p.id}, 'unit', this.value)">
       </div>
+      <button class="btn-del" onclick="deleteProduct(${p.id})">${t('btn_delete')}</button>
     `;
     container.appendChild(div);
   });
@@ -1275,8 +1358,10 @@ function deleteStore(id) {
   if (storesData.length <= 1) { alert(t('alert_last_store_cannot_delete')); return; }
   if (confirm(t('confirm_delete_store'))) {
     storesData = storesData.filter(st => st.id !== id);
+    delete storeDataMap[id];
     if (currentStoreId === id) currentStoreId = storesData[0].id;
     renderStoreMasterList();
+    renderProductMasterList();
     updateStoreDisplay();
     renderItems(currentCategory);
     saveToLocalStorage();
@@ -1284,49 +1369,57 @@ function deleteStore(id) {
 }
 
 function saveProductMaster() {
-  const name = document.getElementById('prodNameInput').value;
+  const name = document.getElementById('prodNameInput').value.trim();
   const price = parseInt(document.getElementById('prodPriceInput').value, 10);
   const minStock = parseInt(document.getElementById('prodMinInput').value, 10);
   const unit = parseInt(document.getElementById('prodUnitInput').value, 10);
   const category = document.getElementById('prodCatInput').value;
+  const isLetterPack = document.getElementById('prodLetterPackInput').checked;
 
-  if (!name || isNaN(price)) { alert("商品名と価格を正しく入力してください。"); return; }
+  if (!name || isNaN(price)) { alert(t('alert_product_name_price_required')); return; }
 
   const newId = masterData.length > 0 ? Math.max(...masterData.map(p => p.id)) + 1 : 1;
-  
-  // 【修正】新規追加した商品にもデフォルトの印字座標（X: 200, Y: 600付近）を持たせる
-  masterData.push({
-    id: newId, 
-    name, 
-    price, 
-    minStock: isNaN(minStock) ? 0 : minStock, 
-    unit: isNaN(unit) ? 10 : unit, 
-    category, 
-    hasSheets: true, 
-    x: 200, // ← ここでプレビュー用の初期X座標を設定
-    y: 600  // ← ここでプレビュー用の初期Y座標を設定
-  });
-  
-  Object.keys(storeDataMap).forEach(sId => {
-    storeDataMap[sId].inventory[newId] = { sheet100: 0 };
-    for (let i = 1; i <= 10; i++) storeDataMap[sId].inventory[newId]['s' + i] = 0;
-  });
+
+  const newProduct = {
+    id: newId,
+    name,
+    price,
+    minStock: isNaN(minStock) ? 0 : minStock,
+    unit: isNaN(unit) ? 10 : unit,
+    category,
+    x: 200,
+    y: 600
+  };
+  if (isLetterPack) newProduct.isLetterPack = true; else newProduct.hasSheets = true;
+  masterData.push(newProduct);
+
+  // 在庫・店舗別設定の初期化は initStoreData が商品形態に応じて行う
+  Object.keys(storeDataMap).forEach(sId => initStoreData(sId));
 
   document.getElementById('prodNameInput').value = '';
   document.getElementById('prodPriceInput').value = '';
   document.getElementById('prodMinInput').value = '';
   document.getElementById('prodUnitInput').value = '';
+  document.getElementById('prodLetterPackInput').checked = false;
   renderProductMasterList();
+  renderCoordManager();
   renderItems(currentCategory);
   saveToLocalStorage();
-  
-  alert("商品を追加しました！\n※必要に応じて「プレビュー・座標」タブから印字位置（X, Y）を調整してください。");
+
+  alert(t('alert_product_added'));
 }
 
 function deleteProduct(id) {
-  if (confirm("この商品を削除しますか？")) {
+  if (confirm(t('confirm_delete_product'))) {
     masterData = masterData.filter(p => p.id !== id);
+    Object.keys(storeDataMap).forEach(sId => {
+      const sData = storeDataMap[sId];
+      if (sData.inventory) delete sData.inventory[id];
+      if (sData.hiddenItems) delete sData.hiddenItems[id];
+      if (sData.productConfigs) delete sData.productConfigs[id];
+    });
     renderProductMasterList();
+    renderCoordManager();
     renderItems(currentCategory);
     saveToLocalStorage();
   }
