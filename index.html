@@ -121,16 +121,22 @@
       border-radius: 6px; font-weight: bold; font-size: 0.95rem; cursor: pointer;
     }
     #login-error { color: var(--accent); font-size: 0.8rem; min-height: 1.2em; margin-top: 8px; text-align: center; }
+
+    .lang-select { background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
+    .lang-select option { color: #212121; }
+
+    .cat-tab { background: #e0e0e0; color: #212121; border: none; padding: 6px 12px; border-radius: 15px; font-size: 0.8rem; font-weight: bold; cursor: pointer; }
+    .cat-tab.active { background: #1976d2; color: white; }
   </style>
 </head>
 <body>
 
 <div id="login-overlay">
   <form id="login-form" class="login-box">
-    <h2>切手管理 ログイン</h2>
-    <label for="login-pin">共通PINコード</label>
-    <input type="password" id="login-pin" autocomplete="current-password" required placeholder="PINコードを入力">
-    <button type="submit">ログイン</button>
+    <h2 data-i18n="login_heading">切手管理 ログイン</h2>
+    <label for="login-pin" data-i18n="login_pin_label">共通PINコード</label>
+    <input type="password" id="login-pin" autocomplete="current-password" required placeholder="PINコードを入力" data-i18n-placeholder="login_pin_placeholder">
+    <button type="submit" data-i18n="login_button">ログイン</button>
     <p id="login-error"></p>
   </form>
 </div>
@@ -138,50 +144,55 @@
 <div id="sync-overlay">🔄 保存中...お待ちください</div>
 
 <header>
-  <h1><img src="kitte_manage.png" alt="Icon"> 切手管理 <span id="syncStatus" class="sync-status">(オフライン)</span></h1>
-  <div style="display:flex; gap:6px;">
-    <button class="btn-header" onclick="syncWithCloud()">💾 保存 (Save)</button>
-    <button class="btn-header" onclick="signOutUser()">ログアウト</button>
+  <h1><img src="kitte_manage.png" alt="Icon"> <span data-i18n="app_title">切手管理</span> <span id="syncStatus" class="sync-status">(オフライン)</span></h1>
+  <div style="display:flex; gap:6px; align-items:center;">
+    <select id="langSelect" class="lang-select" onchange="setLang(this.value)">
+      <option value="ja">日本語</option>
+      <option value="en">English</option>
+      <option value="ne">नेपाली</option>
+    </select>
+    <button class="btn-header" onclick="syncWithCloud()" data-i18n="header_save">💾 保存 (Save)</button>
+    <button class="btn-header" onclick="signOutUser()" data-i18n="header_logout">ログアウト</button>
   </div>
 </header>
 
 <div class="container">
 
   <div class="store-bar">
-    <span>🏪 現在の店舗: <span id="currentStoreDisplay" style="color:#1565c0;">1号店</span></span>
+    <span><span data-i18n="store_bar_label">🏪 現在の店舗: </span><span id="currentStoreDisplay" style="color:#1565c0;">1号店</span></span>
   </div>
 
   <div class="mode-tabs">
-    <button class="mode-tab active" onclick="switchMode('input', this)">📋 入力・サマリー</button>
-    <button class="mode-tab" onclick="switchMode('preview', this)">👁️ プレビュー・座標</button>
-    <button class="mode-tab" onclick="switchMode('master', this)">⚙️ マスタ管理</button>
+    <button class="mode-tab active" onclick="switchMode('input', this)" data-i18n="tab_input">📋 入力・サマリー</button>
+    <button class="mode-tab" onclick="switchMode('preview', this)" data-i18n="tab_preview">👁️ プレビュー・座標</button>
+    <button class="mode-tab" onclick="switchMode('master', this)" data-i18n="tab_master">⚙️ マスタ管理</button>
   </div>
 
   <div id="view-input" class="section-view active">
     <div class="input-main-container">
       <div style="display:flex; gap:6px; overflow-x:auto;">
-        <button class="tab" onclick="filterCategory('all', this)" style="background:#1976d2; color:white; border:none; padding:6px 12px; border-radius:15px; font-size:0.8rem; font-weight:bold;">すべて</button>
-        <button class="tab" onclick="filterCategory('印紙', this)" style="background:#e0e0e0; border:none; padding:6px 12px; border-radius:15px; font-size:0.8rem; font-weight:bold;">収入印紙</button>
-        <button class="tab" onclick="filterCategory('切手', this)" style="background:#e0e0e0; border:none; padding:6px 12px; border-radius:15px; font-size:0.8rem; font-weight:bold;">切手類</button>
-        <button class="tab" onclick="filterCategory('葉書', this)" style="background:#e0e0e0; border:none; padding:6px 12px; border-radius:15px; font-size:0.8rem; font-weight:bold;">葉書・レターパック</button>
+        <button class="cat-tab active" onclick="filterCategory('all', this)" data-i18n="cat_all">すべて</button>
+        <button class="cat-tab" onclick="filterCategory('印紙', this)" data-i18n="cat_stamp_duty">収入印紙</button>
+        <button class="cat-tab" onclick="filterCategory('切手', this)" data-i18n="cat_stamps">切手類</button>
+        <button class="cat-tab" onclick="filterCategory('葉書', this)" data-i18n="cat_postcards">葉書・レターパック</button>
       </div>
 
       <div id="items-container"></div>
 
       <div class="summary-card">
-        <div class="summary-title">📢 発注・買受サマリー（最低在庫割れ）</div>
+        <div class="summary-title" data-i18n="summary_title">📢 発注・買受サマリー（最低在庫割れ）</div>
         <div class="summary-grid">
-          <div class="summary-item"><div class="label">郵便切手類 合計</div><div class="val" id="sum-stamps">0 円</div></div>
-          <div class="summary-item"><div class="label">葉書・レターパック 合計</div><div class="val" id="sum-postcards">0 円</div></div>
-          <div class="summary-item"><div class="label">収入印紙 合計</div><div class="val" id="sum-revenue">0 円</div></div>
-          <div class="summary-item"><div class="label">切手等 計（印紙除く）</div><div class="val" id="sum-postal-total">0 円</div></div>
+          <div class="summary-item"><div class="label" data-i18n="summary_stamps_label">郵便切手類 合計</div><div class="val" id="sum-stamps">0 円</div></div>
+          <div class="summary-item"><div class="label" data-i18n="summary_postcards_label">葉書・レターパック 合計</div><div class="val" id="sum-postcards">0 円</div></div>
+          <div class="summary-item"><div class="label" data-i18n="summary_revenue_label">収入印紙 合計</div><div class="val" id="sum-revenue">0 円</div></div>
+          <div class="summary-item"><div class="label" data-i18n="summary_postal_total_label">切手等 計（印紙除く）</div><div class="val" id="sum-postal-total">0 円</div></div>
         </div>
         <div class="total-box">
-          <div class="label">レジ出金額（商品前渡金 総額）</div>
+          <div class="label" data-i18n="total_cash_label">レジ出金額（商品前渡金 総額）</div>
           <div class="val" id="sum-total-cash">0 円</div>
         </div>
-        
-        <button class="btn-action-main" style="background:#0288d1;" onclick="generateImageFromInput()">🖼️ 請求書画像を作成する（保存含む）</button>
+
+        <button class="btn-action-main" style="background:#0288d1;" onclick="generateImageFromInput()" data-i18n="btn_generate_image">🖼️ 請求書画像を作成する（保存含む）</button>
         <div id="download-area"></div>
       </div>
     </div>
@@ -191,24 +202,24 @@
     <div class="preview-layout">
       <div class="preview-card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <span style="font-weight:bold; color:var(--primary);">請求書 プレビュー</span>
-          <label style="font-size:0.85rem; cursor:pointer;"><input type="checkbox" id="gridToggle" checked onchange="updateCanvas()"> グリッド線</label>
+          <span style="font-weight:bold; color:var(--primary);" data-i18n="preview_title">請求書 プレビュー</span>
+          <label style="font-size:0.85rem; cursor:pointer;"><input type="checkbox" id="gridToggle" checked onchange="updateCanvas()"> <span data-i18n="grid_toggle_label">グリッド線</span></label>
         </div>
-        
+
         <div style="background:#fff3e0; padding:8px 12px; border-radius:6px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; font-size:0.85rem;">
-          <span><b>間隔調整:</b></span>
-          <div>名〜数: <select id="spaceNameQty" onchange="updateCanvas()"><option value="    ">狭</option><option value="        " selected>標準</option><option value="            ">広</option></select></div>
-          <div>数〜金: <select id="spaceQtyAmt" onchange="updateCanvas()"><option value="    ">狭</option><option value="        " selected>標準</option><option value="            ">広</option></select></div>
+          <span><b data-i18n="spacing_label">間隔調整:</b></span>
+          <div><span data-i18n="spacing_name_qty">名〜数:</span> <select id="spaceNameQty" onchange="updateCanvas()"><option value="    " data-i18n="spacing_narrow">狭</option><option value="        " selected data-i18n="spacing_standard">標準</option><option value="            " data-i18n="spacing_wide">広</option></select></div>
+          <div><span data-i18n="spacing_qty_amt">数〜金:</span> <select id="spaceQtyAmt" onchange="updateCanvas()"><option value="    " data-i18n="spacing_narrow">狭</option><option value="        " selected data-i18n="spacing_standard">標準</option><option value="            " data-i18n="spacing_wide">広</option></select></div>
         </div>
 
         <div class="canvas-container">
           <canvas id="formCanvas"></canvas>
         </div>
-        <button class="btn-action-main" style="background:#0288d1; margin-top:8px;" onclick="refreshPreviewCanvas()">🔄 プレビューをリフレッシュ</button>
+        <button class="btn-action-main" style="background:#0288d1; margin-top:8px;" onclick="refreshPreviewCanvas()" data-i18n="btn_refresh_preview">🔄 プレビューをリフレッシュ</button>
       </div>
 
       <div class="coord-manager">
-        <h3 style="font-size:0.95rem; color:#e65100; margin-bottom:6px;">📍 印刷項目・座標調整（直接入力）</h3>
+        <h3 style="font-size:0.95rem; color:#e65100; margin-bottom:6px;" data-i18n="coord_manager_title">📍 印刷項目・座標調整（直接入力）</h3>
         <div id="coord-rows-container"></div>
       </div>
     </div>
@@ -216,22 +227,22 @@
 
   <div id="view-master" class="section-view">
     <div class="master-card">
-      <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;">☁️ Firebase 連携</h3>
+      <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;" data-i18n="firebase_section_title">☁️ Firebase 連携</h3>
       <p style="font-size:0.8rem; color:#666; margin-bottom:8px;" id="firebaseStatusText">状態を確認中...</p>
     </div>
 
     <div class="master-card">
-      <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;">🏪 店舗設定</h3>
+      <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;" data-i18n="store_settings_title">🏪 店舗設定</h3>
       <div class="master-form">
-        <input type="text" id="storeNameInput" placeholder="店舗名" style="grid-column: span 2;">
-        <button class="btn-submit-master" onclick="saveStoreMaster()">店舗を追加</button>
+        <input type="text" id="storeNameInput" placeholder="店舗名" style="grid-column: span 2;" data-i18n-placeholder="store_name_placeholder">
+        <button class="btn-submit-master" onclick="saveStoreMaster()" data-i18n="btn_add_store">店舗を追加</button>
       </div>
       <div id="store-list-container" style="margin-top: 10px;"></div>
     </div>
 
 <div class="master-card">
-      <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;">📦 店舗別 商品設定（最低在庫・買受数）</h3>
-      <p style="font-size:0.75rem; color:#666; margin-bottom:8px;">※現在選択中の店舗（<span id="masterStoreName" style="font-weight:bold; color:#1565c0;">1号店</span>）の設定を変更できます。</p>
+      <h3 style="font-size:0.95rem; color:#2e7d32; margin-bottom:4px;" data-i18n="product_settings_title">📦 店舗別 商品設定（最低在庫・買受数）</h3>
+      <p style="font-size:0.75rem; color:#666; margin-bottom:8px;"><span data-i18n="product_settings_desc_before">※現在選択中の店舗（</span><span id="masterStoreName" style="font-weight:bold; color:#1565c0;">1号店</span><span data-i18n="product_settings_desc_after">）の設定を変更できます。</span></p>
       <div id="product-config-list-container" style="margin-top: 10px;"></div>
     </div>
   </div>
@@ -271,19 +282,306 @@ async function handleLoginSubmit(e) {
   const errEl = document.getElementById('login-error');
   errEl.textContent = '';
   if (!auth) {
-    errEl.textContent = 'Firebase設定が未完了です。';
+    errEl.textContent = t('login_error_no_config');
     return;
   }
   try {
     await auth.signInWithEmailAndPassword(SHARED_LOGIN_EMAIL, pin);
   } catch (err) {
-    errEl.textContent = 'PINコードが正しくありません。';
+    errEl.textContent = t('login_error_wrong_pin');
   }
 }
 
 function signOutUser() {
   if (!auth) return;
-  if (confirm('ログアウトしますか？')) auth.signOut();
+  if (confirm(t('logout_confirm'))) auth.signOut();
+}
+
+const I18N = {
+  ja: {
+    app_title: "切手管理",
+    login_heading: "切手管理 ログイン",
+    login_pin_label: "共通PINコード",
+    login_pin_placeholder: "PINコードを入力",
+    login_button: "ログイン",
+    login_error_no_config: "Firebase設定が未完了です。",
+    login_error_no_config_full: "Firebase設定が未完了です。index.html内のfirebaseConfigを確認してください。",
+    login_error_wrong_pin: "PINコードが正しくありません。",
+    header_save: "💾 保存 (Save)",
+    header_logout: "ログアウト",
+    logout_confirm: "ログアウトしますか？",
+    sync_offline: "(オフライン)",
+    sync_offline_cache: "(オフラインキャッシュ)",
+    sync_loading: "(読み込み中...)",
+    sync_latest: "(最新)",
+    sync_new_unsaved: "(未保存・新規)",
+    sync_offline_mode: "(オフライン稼働)",
+    sync_saving: "(保存中...)",
+    sync_saved: "(保存完了)",
+    sync_error: "(通信エラー)",
+    sync_local_only: "(ローカル保存)",
+    data_loaded_alert: "最新データの読み込みが完了しました。\n入力が終わったら必ず「保存 (Save)」ボタンを押してください。",
+    save_success_alert: "クラウド(Firebase)への保存が完了しました！",
+    save_error_alert: "保存に失敗しました。通信環境またはFirebase設定を確認してください。",
+    store_bar_label: "🏪 現在の店舗: ",
+    tab_input: "📋 入力・サマリー",
+    tab_preview: "👁️ プレビュー・座標",
+    tab_master: "⚙️ マスタ管理",
+    cat_all: "すべて",
+    cat_stamp_duty: "収入印紙",
+    cat_stamps: "切手類",
+    cat_postcards: "葉書・レターパック",
+    summary_title: "📢 発注・買受サマリー（最低在庫割れ）",
+    summary_stamps_label: "郵便切手類 合計",
+    summary_postcards_label: "葉書・レターパック 合計",
+    summary_revenue_label: "収入印紙 合計",
+    summary_postal_total_label: "切手等 計（印紙除く）",
+    total_cash_label: "レジ出金額（商品前渡金 総額）",
+    btn_generate_image: "🖼️ 請求書画像を作成する（保存含む）",
+    slot_single: "バラ",
+    slot_bundle20: "1束(20)",
+    slot_sheet100: "100枚",
+    slot_sheet_n: "{n}枚",
+    btn_show: "表示",
+    btn_hide: "非表示",
+    stock_badge: "在庫: {n}枚",
+    preview_title: "請求書 プレビュー",
+    grid_toggle_label: "グリッド線",
+    spacing_label: "間隔調整:",
+    spacing_name_qty: "名〜数:",
+    spacing_qty_amt: "数〜金:",
+    spacing_narrow: "狭",
+    spacing_standard: "標準",
+    spacing_wide: "広",
+    btn_refresh_preview: "🔄 プレビューをリフレッシュ",
+    coord_manager_title: "📍 印刷項目・座標調整（直接入力）",
+    firebase_section_title: "☁️ Firebase 連携",
+    firebase_status_ok: "✅ Firebaseに接続設定済みです。",
+    firebase_status_missing: "⚠️ 未設定です。index.html内のfirebaseConfigにご自身のFirebaseプロジェクトの値を設定してください。",
+    store_settings_title: "🏪 店舗設定",
+    store_name_placeholder: "店舗名",
+    btn_add_store: "店舗を追加",
+    store_current_label: "(現在選択中)",
+    btn_switch: "切替",
+    btn_delete: "削除",
+    product_settings_title: "📦 店舗別 商品設定（最低在庫・買受数）",
+    product_settings_desc_before: "※現在選択中の店舗（",
+    product_settings_desc_after: "）の設定を変更できます。",
+    price_label: "(定価:¥{price})",
+    min_stock_label: "最低在庫",
+    unit_label: "買受単位",
+    alert_store_name_required: "店舗名を入力してください。",
+    alert_store_added: "店舗を追加しました！（保存ボタンを押すとクラウドに反映されます）",
+    alert_last_store_cannot_delete: "最後の店舗は削除できません。",
+    confirm_delete_store: "この店舗を削除しますか？",
+    alert_store_switched: "店舗を切り替えました。",
+    image_generated_link_text: "✅ 画像が生成されました【タップして保存】",
+    alert_image_saved: "保存と画像作成が完了しました！下の緑色のボタンをタップして保存してください。"
+  },
+  en: {
+    app_title: "Stamp Manager",
+    login_heading: "Stamp Manager Login",
+    login_pin_label: "Shared PIN Code",
+    login_pin_placeholder: "Enter PIN code",
+    login_button: "Log In",
+    login_error_no_config: "Firebase is not configured yet.",
+    login_error_no_config_full: "Firebase is not configured. Please check firebaseConfig in index.html.",
+    login_error_wrong_pin: "Incorrect PIN code.",
+    header_save: "💾 Save",
+    header_logout: "Log Out",
+    logout_confirm: "Log out?",
+    sync_offline: "(Offline)",
+    sync_offline_cache: "(Offline cache)",
+    sync_loading: "(Loading...)",
+    sync_latest: "(Up to date)",
+    sync_new_unsaved: "(New, not saved)",
+    sync_offline_mode: "(Offline mode)",
+    sync_saving: "(Saving...)",
+    sync_saved: "(Saved)",
+    sync_error: "(Connection error)",
+    sync_local_only: "(Local save only)",
+    data_loaded_alert: "Latest data loaded successfully.\nBe sure to press the \"Save\" button after entering data.",
+    save_success_alert: "Saved to the cloud (Firebase) successfully!",
+    save_error_alert: "Save failed. Please check your connection or Firebase configuration.",
+    store_bar_label: "🏪 Current store: ",
+    tab_input: "📋 Input & Summary",
+    tab_preview: "👁️ Preview & Position",
+    tab_master: "⚙️ Settings",
+    cat_all: "All",
+    cat_stamp_duty: "Revenue Stamps",
+    cat_stamps: "Postage Stamps",
+    cat_postcards: "Postcards & Letter Packs",
+    summary_title: "📢 Order Summary (Below Minimum Stock)",
+    summary_stamps_label: "Postage Stamps Total",
+    summary_postcards_label: "Postcards & Letter Packs Total",
+    summary_revenue_label: "Revenue Stamps Total",
+    summary_postal_total_label: "Postal Items Subtotal (excl. Revenue Stamps)",
+    total_cash_label: "Register Payout (Total Advance for Goods)",
+    btn_generate_image: "🖼️ Generate Invoice Image (incl. Save)",
+    slot_single: "Loose",
+    slot_bundle20: "Bundle (20)",
+    slot_sheet100: "100 sheets",
+    slot_sheet_n: "{n} sheet(s)",
+    btn_show: "Show",
+    btn_hide: "Hide",
+    stock_badge: "Stock: {n}",
+    preview_title: "Invoice Preview",
+    grid_toggle_label: "Grid lines",
+    spacing_label: "Spacing:",
+    spacing_name_qty: "Name–Qty:",
+    spacing_qty_amt: "Qty–Amount:",
+    spacing_narrow: "Narrow",
+    spacing_standard: "Standard",
+    spacing_wide: "Wide",
+    btn_refresh_preview: "🔄 Refresh Preview",
+    coord_manager_title: "📍 Print Items & Coordinates (Direct Input)",
+    firebase_section_title: "☁️ Firebase Connection",
+    firebase_status_ok: "✅ Connected to Firebase.",
+    firebase_status_missing: "⚠️ Not configured. Please set your Firebase project's values in firebaseConfig inside index.html.",
+    store_settings_title: "🏪 Store Settings",
+    store_name_placeholder: "Store name",
+    btn_add_store: "Add Store",
+    store_current_label: "(Currently selected)",
+    btn_switch: "Switch",
+    btn_delete: "Delete",
+    product_settings_title: "📦 Per-Store Product Settings (Min Stock & Order Qty)",
+    product_settings_desc_before: "※You can change settings for the currently selected store (",
+    product_settings_desc_after: ").",
+    price_label: "(Price: ¥{price})",
+    min_stock_label: "Min Stock",
+    unit_label: "Order Unit",
+    alert_store_name_required: "Please enter a store name.",
+    alert_store_added: "Store added! (Press Save to sync to the cloud)",
+    alert_last_store_cannot_delete: "You cannot delete the last remaining store.",
+    confirm_delete_store: "Delete this store?",
+    alert_store_switched: "Store switched.",
+    image_generated_link_text: "✅ Image generated [Tap to save]",
+    alert_image_saved: "Save and image generation complete! Tap the green button below to save."
+  },
+  ne: {
+    app_title: "टिकट व्यवस्थापन",
+    login_heading: "टिकट व्यवस्थापन लगइन",
+    login_pin_label: "साझा PIN कोड",
+    login_pin_placeholder: "PIN कोड प्रविष्ट गर्नुहोस्",
+    login_button: "लगइन गर्नुहोस्",
+    login_error_no_config: "Firebase कन्फिगर गरिएको छैन।",
+    login_error_no_config_full: "Firebase कन्फिगर गरिएको छैन। index.html भित्रको firebaseConfig जाँच गर्नुहोस्।",
+    login_error_wrong_pin: "PIN कोड मिलेन।",
+    header_save: "💾 सुरक्षित गर्नुहोस्",
+    header_logout: "लगआउट",
+    logout_confirm: "लगआउट गर्ने हो?",
+    sync_offline: "(अफलाइन)",
+    sync_offline_cache: "(अफलाइन क्यास)",
+    sync_loading: "(लोड हुँदैछ...)",
+    sync_latest: "(पछिल्लो)",
+    sync_new_unsaved: "(नयाँ, सुरक्षित छैन)",
+    sync_offline_mode: "(अफलाइन मोड)",
+    sync_saving: "(सुरक्षित गर्दै...)",
+    sync_saved: "(सुरक्षित भयो)",
+    sync_error: "(जडान त्रुटि)",
+    sync_local_only: "(स्थानीय मात्र सुरक्षित)",
+    data_loaded_alert: "पछिल्लो डाटा लोड भयो।\nडाटा प्रविष्ट गरिसकेपछि अनिवार्य रूपमा \"सुरक्षित गर्नुहोस् (Save)\" बटन थिच्नुहोस्।",
+    save_success_alert: "क्लाउड (Firebase) मा सुरक्षित भयो!",
+    save_error_alert: "सुरक्षित गर्न असफल भयो। इन्टरनेट वा Firebase सेटिङ जाँच गर्नुहोस्।",
+    store_bar_label: "🏪 हालको पसल: ",
+    tab_input: "📋 इनपुट र सारांश",
+    tab_preview: "👁️ पूर्वावलोकन र स्थिति",
+    tab_master: "⚙️ सेटिङ",
+    cat_all: "सबै",
+    cat_stamp_duty: "राजस्व टिकट",
+    cat_stamps: "हुलाक टिकट",
+    cat_postcards: "पोस्टकार्ड र लेटर प्याक",
+    summary_title: "📢 अर्डर सारांश (न्यूनतम स्टक भन्दा कम)",
+    summary_stamps_label: "हुलाक टिकट जम्मा",
+    summary_postcards_label: "पोस्टकार्ड र लेटर प्याक जम्मा",
+    summary_revenue_label: "राजस्व टिकट जम्मा",
+    summary_postal_total_label: "हुलाक सामान जम्मा (राजस्व टिकट बाहेक)",
+    total_cash_label: "क्यास आउट रकम (सामानको पेश्की जम्मा)",
+    btn_generate_image: "🖼️ बिल तस्बिर बनाउनुहोस् (सुरक्षित सहित)",
+    slot_single: "एकल",
+    slot_bundle20: "बन्डल (20)",
+    slot_sheet100: "100 शीट",
+    slot_sheet_n: "{n} शीट",
+    btn_show: "देखाउनुहोस्",
+    btn_hide: "लुकाउनुहोस्",
+    stock_badge: "स्टक: {n}",
+    preview_title: "बिल पूर्वावलोकन",
+    grid_toggle_label: "ग्रिड लाइन",
+    spacing_label: "स्पेसिङ:",
+    spacing_name_qty: "नाम–संख्या:",
+    spacing_qty_amt: "संख्या–रकम:",
+    spacing_narrow: "साँघुरो",
+    spacing_standard: "मानक",
+    spacing_wide: "फराकिलो",
+    btn_refresh_preview: "🔄 पूर्वावलोकन ताजा गर्नुहोस्",
+    coord_manager_title: "📍 छपाइ वस्तु र स्थिति (प्रत्यक्ष इनपुट)",
+    firebase_section_title: "☁️ Firebase जडान",
+    firebase_status_ok: "✅ Firebase जडान भइसक्यो।",
+    firebase_status_missing: "⚠️ कन्फिगर गरिएको छैन। index.html भित्रको firebaseConfig मा आफ्नो Firebase प्रोजेक्टको मान राख्नुहोस्।",
+    store_settings_title: "🏪 पसल सेटिङ",
+    store_name_placeholder: "पसलको नाम",
+    btn_add_store: "पसल थप्नुहोस्",
+    store_current_label: "(हाल चयन गरिएको)",
+    btn_switch: "बदल्नुहोस्",
+    btn_delete: "मेटाउनुहोस्",
+    product_settings_title: "📦 पसल अनुसार उत्पादन सेटिङ (न्यूनतम स्टक र अर्डर परिमाण)",
+    product_settings_desc_before: "※हाल चयन गरिएको पसल (",
+    product_settings_desc_after: ") को सेटिङ परिवर्तन गर्न सकिन्छ।",
+    price_label: "(मूल्य: ¥{price})",
+    min_stock_label: "न्यूनतम स्टक",
+    unit_label: "अर्डर एकाइ",
+    alert_store_name_required: "कृपया पसलको नाम प्रविष्ट गर्नुहोस्।",
+    alert_store_added: "पसल थपियो! (क्लाउडमा लैजान सुरक्षित बटन थिच्नुहोस्)",
+    alert_last_store_cannot_delete: "अन्तिम पसल मेटाउन सकिँदैन।",
+    confirm_delete_store: "यो पसल मेटाउने हो?",
+    alert_store_switched: "पसल बदलियो।",
+    image_generated_link_text: "✅ तस्बिर बन्यो [सुरक्षित गर्न ट्याप गर्नुहोस्]",
+    alert_image_saved: "सुरक्षित र तस्बिर निर्माण पूरा भयो! तल हरियो बटन ट्याप गरेर सुरक्षित गर्नुहोस्।"
+  }
+};
+
+let LANG = 'ja';
+try {
+  const savedLang = localStorage.getItem('kitte_lang');
+  if (savedLang && I18N[savedLang]) LANG = savedLang;
+} catch(e) {}
+
+function t(key, vars) {
+  const dict = I18N[LANG] || I18N.ja;
+  let str = dict[key] !== undefined ? dict[key] : I18N.ja[key];
+  if (str === undefined) return key;
+  if (vars) {
+    Object.keys(vars).forEach(k => { str = str.split('{' + k + '}').join(vars[k]); });
+  }
+  return str;
+}
+
+function formatYen(n) {
+  return LANG === 'ja' ? `${n.toLocaleString()} 円` : `¥${n.toLocaleString()}`;
+}
+
+function applyStaticI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.getAttribute('data-i18n')); });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.getAttribute('data-i18n-placeholder')); });
+}
+
+function setLang(lang) {
+  if (!I18N[lang]) lang = 'ja';
+  LANG = lang;
+  try { localStorage.setItem('kitte_lang', lang); } catch(e) {}
+  document.documentElement.lang = lang;
+  document.title = t('app_title');
+  const langSelect = document.getElementById('langSelect');
+  if (langSelect) langSelect.value = lang;
+  applyStaticI18n();
+  updateFirebaseStatusText();
+  setSyncStatus(currentSyncStateKey);
+  const itemsContainer = document.getElementById('items-container');
+  if (itemsContainer) itemsContainer.innerHTML = '';
+  renderItems(currentCategory);
+  renderStoreMasterList();
+  renderProductMasterList();
+  renderCoordManager();
 }
 
 let storesData = [{ id: 1, name: "1号店" }];
@@ -365,12 +663,12 @@ async function loadFromCloud() {
     initStoreData(currentStoreId);
     updateStoreDisplay();
     renderItems(currentCategory);
-    setSyncStatus("(オフラインキャッシュ)");
+    setSyncStatus('sync_offline_cache');
   }
 
   updateFirebaseStatusText();
   if (!isFirebaseConfigured) return;
-  setSyncStatus("(読み込み中...)");
+  setSyncStatus('sync_loading');
   try {
     const snap = await stateDocRef().get();
     if (snap.exists) {
@@ -380,18 +678,18 @@ async function loadFromCloud() {
       if (data.layout && data.layout.length > 0) specialPrintData = sanitizeSpecialPrintData(data.layout);
       if (data.storeDataMap) storeDataMap = data.storeDataMap;
       saveToLocalStorage();
-      setSyncStatus("(最新)");
+      setSyncStatus('sync_latest');
     } else {
-      setSyncStatus("(未保存・新規)");
+      setSyncStatus('sync_new_unsaved');
     }
     initStoreData(currentStoreId);
     updateStoreDisplay();
     renderItems(currentCategory);
 
-    alert("最新データの読み込みが完了しました。\n入力が終わったら必ず「保存 (Save)」ボタンを押してください。\n\nLoading complete.\nPlease be sure to click the \"Save\" button after entering data.");
+    alert(t('data_loaded_alert'));
 
   } catch(e) {
-    setSyncStatus("(オフライン稼働)");
+    setSyncStatus('sync_offline_mode');
   }
 }
 
@@ -405,11 +703,11 @@ async function syncWithCloud() {
   showSyncOverlay(true);
   saveToLocalStorage();
   if (!isFirebaseConfigured) {
-    setSyncStatus("(ローカル保存)");
+    setSyncStatus('sync_local_only');
     showSyncOverlay(false);
     return;
   }
-  setSyncStatus("(保存中...)");
+  setSyncStatus('sync_saving');
 
   specialPrintData = sanitizeSpecialPrintData(specialPrintData);
   const payload = {
@@ -422,27 +720,27 @@ async function syncWithCloud() {
 
   try {
     await stateDocRef().set(payload);
-    setSyncStatus("(保存完了)");
-    alert("クラウド(Firebase)への保存が完了しました！");
+    setSyncStatus('sync_saved');
+    alert(t('save_success_alert'));
   } catch(e) {
-    setSyncStatus("(通信エラー)");
-    alert("保存に失敗しました。通信環境またはFirebase設定を確認してください。");
+    setSyncStatus('sync_error');
+    alert(t('save_error_alert'));
   } finally {
     showSyncOverlay(false);
   }
 }
 
-function setSyncStatus(txt) {
+let currentSyncStateKey = 'sync_offline';
+function setSyncStatus(key) {
+  currentSyncStateKey = key;
   const el = document.getElementById('syncStatus');
-  if (el) el.innerText = txt;
+  if (el) el.innerText = t(key);
 }
 
 function updateFirebaseStatusText() {
   const el = document.getElementById('firebaseStatusText');
   if (!el) return;
-  el.innerText = isFirebaseConfigured
-    ? "✅ Firebaseに接続設定済みです。"
-    : "⚠️ 未設定です。index.html内のfirebaseConfigにご自身のFirebaseプロジェクトの値を設定してください。";
+  el.innerText = isFirebaseConfigured ? t('firebase_status_ok') : t('firebase_status_missing');
 }
 
 function preloadBackground() {
@@ -498,6 +796,8 @@ function updateStoreDisplay() {
 let currentCategory = 'all';
 function filterCategory(cat, btn) {
   currentCategory = cat;
+  document.querySelectorAll('.cat-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
   renderItems(currentCategory);
 }
 
@@ -535,12 +835,12 @@ function renderItems(filterCat = 'all') {
       let slotsHtml = '';
       if (item.isLetterPack) {
         slotsHtml += `
-          <div class="slot-box"><div class="slot-label">バラ</div><div class="vertical-stepper"><button class="btn-step-v" onclick="changeCount(${item.id}, 'single', 1)">▲</button><input type="number" id="input_${item.id}_single" class="slot-input" value="${inv.single || 0}" onchange="setCount(${item.id}, 'single', this.value)"><button class="btn-step-v" onclick="changeCount(${item.id}, 'single', -1)">▼</button></div></div>
-          <div class="slot-box"><div class="slot-label">1束(20)</div><div class="vertical-stepper"><button class="btn-step-v" onclick="changeCount(${item.id}, 'bundle20', 1)">▲</button><input type="number" id="input_${item.id}_bundle20" class="slot-input" value="${inv.bundle20 || 0}" onchange="setCount(${item.id}, 'bundle20', this.value)"><button class="btn-step-v" onclick="changeCount(${item.id}, 'bundle20', -1)">▼</button></div></div>`;
+          <div class="slot-box"><div class="slot-label">${t('slot_single')}</div><div class="vertical-stepper"><button class="btn-step-v" onclick="changeCount(${item.id}, 'single', 1)">▲</button><input type="number" id="input_${item.id}_single" class="slot-input" value="${inv.single || 0}" onchange="setCount(${item.id}, 'single', this.value)"><button class="btn-step-v" onclick="changeCount(${item.id}, 'single', -1)">▼</button></div></div>
+          <div class="slot-box"><div class="slot-label">${t('slot_bundle20')}</div><div class="vertical-stepper"><button class="btn-step-v" onclick="changeCount(${item.id}, 'bundle20', 1)">▲</button><input type="number" id="input_${item.id}_bundle20" class="slot-input" value="${inv.bundle20 || 0}" onchange="setCount(${item.id}, 'bundle20', this.value)"><button class="btn-step-v" onclick="changeCount(${item.id}, 'bundle20', -1)">▼</button></div></div>`;
       } else {
-        slotsHtml += `<div class="slot-box"><div class="slot-label">100枚</div><div class="vertical-stepper"><button class="btn-step-v" onclick="changeCount(${item.id}, 'sheet100', 1)">▲</button><input type="number" id="input_${item.id}_sheet100" class="slot-input" value="${inv.sheet100 || 0}" onchange="setCount(${item.id}, 'sheet100', this.value)"><button class="btn-step-v" onclick="changeCount(${item.id}, 'sheet100', -1)">▼</button></div></div>`;
+        slotsHtml += `<div class="slot-box"><div class="slot-label">${t('slot_sheet100')}</div><div class="vertical-stepper"><button class="btn-step-v" onclick="changeCount(${item.id}, 'sheet100', 1)">▲</button><input type="number" id="input_${item.id}_sheet100" class="slot-input" value="${inv.sheet100 || 0}" onchange="setCount(${item.id}, 'sheet100', this.value)"><button class="btn-step-v" onclick="changeCount(${item.id}, 'sheet100', -1)">▼</button></div></div>`;
         for (let i = 1; i <= 10; i++) {
-          slotsHtml += `<div class="slot-box"><div class="slot-label">${i}枚</div><div class="vertical-stepper"><button class="btn-step-v" onclick="changeCount(${item.id}, 's${i}', 1)">▲</button><input type="number" id="input_${item.id}_s${i}" class="slot-input" value="${inv['s' + i] || 0}" onchange="setCount(${item.id}, 's${i}', this.value)"><button class="btn-step-v" onclick="changeCount(${item.id}, 's${i}', -1)">▼</button></div></div>`;
+          slotsHtml += `<div class="slot-box"><div class="slot-label">${t('slot_sheet_n', {n: i})}</div><div class="vertical-stepper"><button class="btn-step-v" onclick="changeCount(${item.id}, 's${i}', 1)">▲</button><input type="number" id="input_${item.id}_s${i}" class="slot-input" value="${inv['s' + i] || 0}" onchange="setCount(${item.id}, 's${i}', this.value)"><button class="btn-step-v" onclick="changeCount(${item.id}, 's${i}', -1)">▼</button></div></div>`;
         }
       }
 
@@ -549,9 +849,9 @@ function renderItems(filterCat = 'all') {
           <div class="item-title-area">
             <span class="item-name">${item.name}</span>
             <span class="item-price">¥${item.price}</span>
-            <button id="btn_hide_${item.id}" class="btn-hide-toggle" onclick="toggleHideItem(${item.id})">${isHidden ? '表示' : '非表示'}</button>
+            <button id="btn_hide_${item.id}" class="btn-hide-toggle" onclick="toggleHideItem(${item.id})">${isHidden ? t('btn_show') : t('btn_hide')}</button>
           </div>
-          <span id="stock_badge_${item.id}" style="font-size:0.75rem; background:#eee; padding:3px 6px; border-radius:4px;">在庫: 0枚</span>
+          <span id="stock_badge_${item.id}" style="font-size:0.75rem; background:#eee; padding:3px 6px; border-radius:4px;">${t('stock_badge', {n: 0})}</span>
         </div>
         <div class="horizontal-stepper-container">${slotsHtml}</div>
       `;
@@ -580,10 +880,10 @@ function renderItems(filterCat = 'all') {
     // 非表示状態の見た目とボタンテキストを確実に反映
     if (isHidden) {
       card.classList.add('hidden-item');
-      if (hideBtn) hideBtn.innerText = '表示';
+      if (hideBtn) hideBtn.innerText = t('btn_show');
     } else {
       card.classList.remove('hidden-item');
-      if (hideBtn) hideBtn.innerText = '非表示';
+      if (hideBtn) hideBtn.innerText = t('btn_hide');
     }
 
     const inv = sData.inventory[item.id] || {};
@@ -603,7 +903,7 @@ function renderItems(filterCat = 'all') {
     }
 
     const badge = document.getElementById(`stock_badge_${item.id}`);
-    if (badge) badge.innerText = `在庫: ${totalStock}枚`;
+    if (badge) badge.innerText = t('stock_badge', {n: totalStock});
   });
 
   calcSummary();
@@ -686,11 +986,11 @@ function getSummaryValues() {
 function calcSummary() {
   const vals = getSummaryValues();
   const setVal = (id, txt) => { const el = document.getElementById(id); if (el) el.innerText = txt; };
-  setVal('sum-stamps', `${vals.stampAmt.toLocaleString()} 円`);
-  setVal('sum-postcards', `${vals.postAmt.toLocaleString()} 円`);
-  setVal('sum-revenue', `${vals.revAmt.toLocaleString()} 円`);
-  setVal('sum-postal-total', `${vals.postalTotal.toLocaleString()} 円`);
-  setVal('sum-total-cash', `${vals.totalCash.toLocaleString()} 円`);
+  setVal('sum-stamps', formatYen(vals.stampAmt));
+  setVal('sum-postcards', formatYen(vals.postAmt));
+  setVal('sum-revenue', formatYen(vals.revAmt));
+  setVal('sum-postal-total', formatYen(vals.postalTotal));
+  setVal('sum-total-cash', formatYen(vals.totalCash));
 }
 
 async function generateImageFromInput() {
@@ -708,7 +1008,7 @@ async function generateImageFromInput() {
   link.id = 'downloadLink';
   link.href = url;
   link.download = '請求書.png';
-  link.innerHTML = '✅ 画像が生成されました【タップして保存】';
+  link.innerHTML = t('image_generated_link_text');
   link.style.display = 'block';
   link.style.marginTop = '15px';
   link.style.padding = '15px';
@@ -720,7 +1020,7 @@ async function generateImageFromInput() {
   link.style.textDecoration = 'none';
 
   document.getElementById('download-area').appendChild(link);
-  alert("保存と画像作成が完了しました！下の緑色のボタンをタップして保存してください。");
+  alert(t('alert_image_saved'));
 }
 
 function renderCoordManager() {
@@ -879,10 +1179,10 @@ function renderStoreMasterList() {
     div.className = 'master-list-item';
     div.style.borderLeft = isCurrent ? "4px solid #1976d2" : "none";
     div.innerHTML = `
-      <span><b>${s.name}</b> ${isCurrent ? '<b>(現在選択中)</b>' : ''}</span>
+      <span><b>${s.name}</b> ${isCurrent ? `<b>${t('store_current_label')}</b>` : ''}</span>
       <div>
-        ${!isCurrent ? `<button class="btn-edit" style="background:#1976d2; padding:4px 8px; border:none; color:white; border-radius:4px; cursor:pointer;" onclick="selectActiveStore(${s.id})">切替</button>` : ''}
-        <button class="btn-del" onclick="deleteStore(${s.id})">削除</button>
+        ${!isCurrent ? `<button class="btn-edit" style="background:#1976d2; padding:4px 8px; border:none; color:white; border-radius:4px; cursor:pointer;" onclick="selectActiveStore(${s.id})">${t('btn_switch')}</button>` : ''}
+        <button class="btn-del" onclick="deleteStore(${s.id})">${t('btn_delete')}</button>
       </div>
     `;
     container.appendChild(div);
@@ -911,13 +1211,13 @@ function renderProductMasterList() {
     div.style.alignItems = 'center';
     
     div.innerHTML = `
-      <span><b>${p.name}</b><br><small style="color:#666;">(定価:¥${p.price})</small></span>
+      <span><b>${p.name}</b><br><small style="color:#666;">${t('price_label', {price: p.price})}</small></span>
       <div>
-        <label style="font-size:0.7rem; color:#666; display:block;">最低在庫</label>
+        <label style="font-size:0.7rem; color:#666; display:block;">${t('min_stock_label')}</label>
         <input type="number" class="slot-input" value="${config.minStock}" onchange="updateStoreProductConfig(${p.id}, 'minStock', this.value)">
       </div>
       <div>
-        <label style="font-size:0.7rem; color:#666; display:block;">買受単位</label>
+        <label style="font-size:0.7rem; color:#666; display:block;">${t('unit_label')}</label>
         <input type="number" class="slot-input" value="${config.unit}" onchange="updateStoreProductConfig(${p.id}, 'unit', this.value)">
       </div>
     `;
@@ -941,7 +1241,7 @@ function selectActiveStore(id) {
   updateStoreDisplay();
   renderStoreMasterList();
   renderItems(currentCategory);
-  alert(`店舗を切り替えました。`);
+  alert(t('alert_store_switched'));
 }
 // 店舗ごとのカスタム商品設定（最低在庫・買受数）を取得する関数
 function getStoreProductConfig(storeId, productId) {
@@ -962,18 +1262,18 @@ function getStoreProductConfig(storeId, productId) {
 }
 function saveStoreMaster() {
   const name = document.getElementById('storeNameInput').value;
-  if (!name) { alert("店舗名を入力してください。"); return; }
+  if (!name) { alert(t('alert_store_name_required')); return; }
   const newId = storesData.length > 0 ? Math.max(...storesData.map(s => s.id)) + 1 : 1;
   storesData.push({ id: newId, name });
   document.getElementById('storeNameInput').value = '';
   renderStoreMasterList();
   saveToLocalStorage();
-  alert("店舗を追加しました！（保存ボタンを押すとクラウドに反映されます）");
+  alert(t('alert_store_added'));
 }
 
 function deleteStore(id) {
-  if (storesData.length <= 1) { alert("最後の店舗は削除できません。"); return; }
-  if (confirm("この店舗を削除しますか？")) {
+  if (storesData.length <= 1) { alert(t('alert_last_store_cannot_delete')); return; }
+  if (confirm(t('confirm_delete_store'))) {
     storesData = storesData.filter(st => st.id !== id);
     if (currentStoreId === id) currentStoreId = storesData[0].id;
     renderStoreMasterList();
@@ -1032,6 +1332,7 @@ function deleteProduct(id) {
   }
 }
 
+setLang(LANG);
 preloadBackground();
 
 document.getElementById('login-form').addEventListener('submit', handleLoginSubmit);
@@ -1042,7 +1343,7 @@ if (auth) {
     if (user) loadFromCloud();
   });
 } else {
-  document.getElementById('login-error').textContent = 'Firebase設定が未完了です。index.html内のfirebaseConfigを確認してください。';
+  document.getElementById('login-error').textContent = t('login_error_no_config_full');
 }
 </script>
 </body>
